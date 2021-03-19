@@ -31,8 +31,16 @@ typedef struct{
 extern   ARM_DRIVER_CAN         Driver_CAN1;
 extern   ARM_DRIVER_CAN         Driver_CAN2;
 
-osMailQId ID_BAL ;
+osMailQId ID_BAL_ultrason ;
 osMailQDef (NOM_BAL, 50,MaStruct) ;
+	
+osMailQId ID_BAL_phares ;
+osMailQDef (NOM_BAL_phares, 50,MaStruct) ;
+
+osMailQId ID_BAL_gps ;
+osMailQDef (NOM_BAL_gps, 50,MaStruct) ;	
+	
+	
 
 // CAN1 utilisé pour réception
 void myCAN1_callback(uint32_t obj_idx, uint32_t event)
@@ -152,37 +160,36 @@ void CANthreadR(void const *argument)
 			case 0x01 :
 				
 			//stockage infrmation data capteur ultrason
-			ptr = osMailAlloc(ID_BAL, osWaitForever);
+			ptr = osMailAlloc(ID_BAL_ultrason, osWaitForever);
 			ptr -> donnee1 = data_buf[0]; // valeur à envoyer
-			osMailPut(ID_BAL, ptr);
+			osMailPut(ID_BAL_ultrason, ptr);
 			
 			// reveille tache à effectuer
-			osSignalSet (id_ultrason,0x0001);
+			
 				
 			break;
 			
 			case 0x02 :
 				
 			// Reception  data status capteur luminosité + LEDS (phares)
-			ptr = osMailAlloc(ID_BAL, osWaitForever);
+			ptr = osMailAlloc(ID_BAL_phares, osWaitForever);
 			ptr -> donnee2 = data_buf[0]; // valeur à envoyer
-			osMailPut(ID_BAL, ptr);
+			osMailPut(ID_BAL_phares, ptr);
 			
 			// reveille tache à effectuer
-			osSignalSet (id_phares,0x0002);
+			
 				
 			break;
 			
 			case 0x04:
 				
 			// Reception data GPS
-			ptr = osMailAlloc(ID_BAL, osWaitForever);
+			ptr = osMailAlloc(ID_BAL_gps, osWaitForever);
 			ptr -> donnee3 = data_buf[0]; // valeur à envoyer
-			osMailPut(ID_BAL, ptr);
+			osMailPut(ID_BAL_gps, ptr);
 			
 			// reveille tache à effectuer
-			osSignalSet (id_gps,0x0004);
-				
+			
 			break;
 		
 		}
@@ -192,18 +199,15 @@ void CANthreadR(void const *argument)
 void ultrason(void const *argument)
 {
 		osEvent result;
-		char chaine2[20];
 		MaStruct *recep;
 		MaStruct valeur_recue;
 
 		while(1)
 		{
-		result=osSignalWait(0x0001, osWaitForever);		// sommeil en attente fin emission
-			
-		result = osMailGet(ID_BAL, osWaitForever); // attente mail
+		result = osMailGet(ID_BAL_ultrason, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
 		valeur_recue = *recep ; // ...et la valeur pointée
-		osMailFree(ID_BAL, recep); // libération mémoire allouée
+		osMailFree(ID_BAL_ultrason, recep); // libération mémoire allouée
 		
 		osDelay(50);
 	}		
@@ -212,9 +216,16 @@ void ultrason(void const *argument)
 void phares(void const *argument)
 {
 	osEvent result;
+	MaStruct *recep;
+	MaStruct valeur_recue;
+	
 	while(1)
 	{
-		result=osSignalWait(0x0002, osWaitForever);		// sommeil en attente fin emission
+		result = osMailGet(ID_BAL_phares, osWaitForever); // attente mail
+		recep = result.value.p; // on cible le pointeur...
+		valeur_recue = *recep ; // ...et la valeur pointée
+		osMailFree(ID_BAL_phares, recep); // libération mémoire allouée
+		
 		osDelay(50);
 	}		
 }
@@ -222,9 +233,16 @@ void phares(void const *argument)
 void gps(void const *argument)
 {
 	osEvent result;
+	MaStruct *recep;
+	MaStruct valeur_recue;
+	
 	while(1)
 	{
-		result=osSignalWait(0x0004, osWaitForever);		// sommeil en attente fin emission
+		result = osMailGet(ID_BAL_gps, osWaitForever); // attente mail
+		recep = result.value.p; // on cible le pointeur...
+		valeur_recue = *recep ; // ...et la valeur pointée
+		osMailFree(ID_BAL_gps, recep); // libération mémoire allouée
+		
 		osDelay(50);
 	}		
 }

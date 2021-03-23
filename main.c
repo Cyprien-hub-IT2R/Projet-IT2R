@@ -46,6 +46,7 @@
 #include "main.h"
 #include "Board_LED.h"                  // ::Board Support:LED
 #include "Driver_USART.h"               // ::CMSIS Driver:USART
+//#include "LPC17xx.h"
 
 
 #ifdef _RTE_
@@ -126,34 +127,37 @@ void Init_I2C(void){
 	//Driver_I2C1.Control(	ARM_I2C_BUS_CLEAR,
 							//0 );
 }
-char valeurultrason[4],valeur[16];
+unsigned char val;
+  char valeurultrason[4];
+	char valeur[16];
 void ultra(void const*argument){
 	//Lettre *ptr;
 	//osEvent result;
-	write1byte( SLAVE_I2C_ADDR,0x00 ,0x51 );
+	write1byte( SLAVE_I2C_ADDR,0x00 ,0x50 );
 	while (1)
   {
 		//ptr = osMailAlloc(ID_BAL, 1000);  //initialisation du pointeur on cherche un case vide
 		//ptr ->valeurultrason[0]=read1byte(SLAVE_I2C_ADDR,0x02);
     //ptr ->valeurultrason[1]=read1byte(SLAVE_I2C_ADDR,0x03);
 		//ptr ->valeurultrason[2]=(ptr ->valeurultrason[0]<<8) | (ptr ->valeurultrason[1]);
-		
+		write1byte( SLAVE_I2C_ADDR,0x01 ,0x06 );
+		write1byte( SLAVE_I2C_ADDR,0x00 ,0x51 );
 		valeurultrason[0]=read1byte(SLAVE_I2C_ADDR,0x02);
     valeurultrason[1]=read1byte(SLAVE_I2C_ADDR,0x03);
-		valeurultrason[2]=(valeurultrason[0]<<8) | (valeurultrason[1]);
+		val=(valeurultrason[0]<<8) | (valeurultrason[1]);
     
-		sprintf(valeur,"\n\r %d cm",valeurultrason[2]);
+		sprintf(valeur,"\n\r %d cm",val);
 		while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
 		Driver_USART1.Send(valeur,15);
 		
 		LED_On (1);																																														//while
 		LED_Off (2);
 		LED_Off (3);
-		if (valeurultrason[2]<13){
+		if (val<13){
 			LED_On (2);
 			LED_On(3);
 		}
-		osDelay(1000);
+		//osDelay(100);
   }
 }	
 void terminal(void const*argument){
@@ -373,45 +377,34 @@ unsigned char read1byte( unsigned char composant, unsigned char registre)
 }	
 //void Timer_Init(unsigned int prescaler, unsigned int valeur)
 //{
-/*LPC_SC->PCONP |= (1<<1); //allume le timer 0 (facultatif, déjà allumé après un reset)
+//LPC_SC->PCONP |= (1<<1); //allume le timer 0 (facultatif, déjà allumé après un reset)
 
-LPC_TIM0->PR =  prescaler;
-LPC_TIM0->MR0 = valeur; 
-LPC_TIM0->MCR = 3;	/*reset counter si MR0=COUNTER + interrupt*/
+//LPC_TIM0->PR =  prescaler;
+//LPC_TIM0->MR0 = valeur; 
+//LPC_TIM0->MCR = 3;	//reset counter si MR0=COUNTER + interrupt*/
 
 //LPC_TIM0->TCR = 1; //démarre le comptage
 //}
 //void TIMER0_IRQHandler(void)
 //{  
-	//char accX1, accX2;
-	//char accY1, accY2;
-	//LPC_TIM0->IR |= 1<<0;   /* clear interrupt bit */
-	// A compléter
-	// ...
-	//Init_I2C();
-	
-	//GLCD_Initialize();               //initialisation ecran 
-	//GLCD_ClearScreen();								//ecran blanc
-	//GLCD_SetFont(&GLCD_Font_16x24);
-	
-	
-	//configuration registre de control
-	  //write1byte( SLAVE_I2C_ADDR,0x24 ,0x70 );
-		//write1byte(SLAVE_I2C_ADDR, 0x25, 0x20);
-		//write1byte(SLAVE_I2C_ADDR, 0x26, 0x00);       //on impose 0x00 au ctrl7
-	
-		//write1byte(SLAVE_I2C_ADDR, 0x20, 0x53);   //configuration accelerometre
-		//write1byte(SLAVE_I2C_ADDR, 0x21, 0x00);
-	
-		
-		//accX1=read1byte(SLAVE_I2C_ADDR,0x28);          // on lit l'acceleration en X
-		//accX2=read1byte(SLAVE_I2C_ADDR,0x29);
-		//accY1=read1byte(SLAVE_I2C_ADDR,0x2a);          //on lit l'acceleration en Y
-		//accY2=read1byte(SLAVE_I2C_ADDR,0x2b);
-	
-	//GLCD_DrawRectangle ((accX2<<8|accX1)/200, (accY2<<8|accY1)/200, 100, 100);
-	
-	
+//	  LPC_TIM0->IR |= 1<<0;   /* clear interrupt bit */  
+//	  valeurultrason[0]=read1byte(SLAVE_I2C_ADDR,0x02);
+//    valeurultrason[1]=read1byte(SLAVE_I2C_ADDR,0x03);
+//		valeurultrason[2]=(valeurultrason[0]<<8) | (valeurultrason[1]);
+//    
+//		sprintf(valeur,"\n\r %d cm",valeurultrason[2]);
+//		while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
+//		Driver_USART1.Send(valeur,15);
+//		
+//		LED_On (1);																																														//while
+//		LED_Off (2);
+//		LED_Off (3);
+//		if (valeurultrason[2]<13){
+//			LED_On (2);
+//			LED_On(3);
+//		}
+//	
+//	
 //}
 /**
   * @}

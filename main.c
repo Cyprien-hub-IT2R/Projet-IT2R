@@ -3,8 +3,8 @@
 #include "osObjects.h"  
 #include "main.h"
 #include "Board_LED.h"                  // ::Board Support:LED
-#include "Driver_I2C.h"                 // ::CMSIS Driver:I2C
 #include "Driver_SPI.h"
+#include "cmsis_os.h"                   // CMSIS RTOS header file
 
 #ifdef _RTE_
 #include "RTE_Components.h"             // Component selection
@@ -63,12 +63,13 @@ static void Error_Handler(void);
   * @retval None
   */
 	
-#define SLAVE_I2C_ADDR       0x60			// Adresse esclave sur 7 bits
 
 extern ARM_DRIVER_SPI Driver_SPI1;
-extern ARM_DRIVER_I2C Driver_I2C1;
 
-osThreadId ID_capteur_lumiere;
+void mySPI_Thread (void const *argument);                             // thread function
+osThreadId tid_mySPI_Thread;                                          // thread id
+osThreadDef (mySPI_Thread, osPriorityNormal, 1, 0);                   // thread object
+
 	
 ADC_HandleTypeDef myADC2Handle;
 
@@ -103,28 +104,38 @@ __HAL_RCC_ADC2_CLK_ENABLE(); // activation Horloge ADC2
 }
 
 
-//void Init_SPI(void){
-//	Driver_SPI1.Initialize(NULL);
-//	Driver_SPI1.PowerControl(ARM_POWER_FULL);
-//	Driver_SPI1.Control(ARM_SPI_MODE_MASTER | 
-//											ARM_SPI_CPOL1_CPHA1 | 
+void Init_SPI(void){
+	Driver_SPI1.Initialize(NULL);
+	Driver_SPI1.PowerControl(ARM_POWER_FULL);
+	Driver_SPI1.Control(ARM_SPI_MODE_MASTER | 
+											ARM_SPI_CPOL1_CPHA1 | 
 //											ARM_SPI_MSB_LSB | 
-//											ARM_SPI_DATA_BITS(8), 1000000);
-//	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
-//}
+											ARM_SPI_SS_MASTER_UNUSED |
+											ARM_SPI_DATA_BITS(8), 1000000);
+	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
+}
 
-//void Init_I2C(void){
-//	Driver_I2C1.Initialize(NULL);
-//	Driver_I2C1.PowerControl(ARM_POWER_FULL);
-//	Driver_I2C1.Control(ARM_I2C_BUS_SPEED,				
-//											ARM_I2C_BUS_SPEED_STANDARD  );	// 100 kHz
-////	Driver_I2C1.Control(ARM_I2C_BUS_CLEAR,
-////											0);
-//}
 
 int ADC_Value;
+
+int lecture_capteur()
+{
+		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
+		
+		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //check if conversion is completed
+		{
+			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); // read digital value and save it inside uint32_t variable
+		}
+		HAL_ADC_Stop(&myADC2Handle); // stop conversion
+		
+		return ADC_Value;
+}
+
+/*
 extern void capteur_lumiere (void const * arg)
 {
+	char tab[100];
+	int i, nb_led;
 	while (1)
 	{
 		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
@@ -135,26 +146,101 @@ extern void capteur_lumiere (void const * arg)
 		}
 		HAL_ADC_Stop(&myADC2Handle); // stop conversion
 		
+		//NUIT
 		if(ADC_Value < 100)
 		{
-			LED_On(1);
-			LED_Off(3);
-		}
+			for (i=0;i<4;i++){
+				tab[i] = 0x00;
+			}
+			
+			for(i=0;i<16;i++)
+			{
+				tab[4+i*4] = 0xFF; 
+				tab[5+i*4] = 0xFF;
+				tab[6+i*4] = 0xFF;
+				tab[7+i*4] = 0xFF;
+			}
+			
+			for (i=72;i<76;i++){
+				tab[i] = 0xFF;
+			}
+
+			Driver_SPI1.Send(tab,77);	
+	}
+
+		
+		//JOUR
 		else if(ADC_Value > 100)
 		{
-			LED_On(3);
-			LED_Off(1);
+			for (i=0;i<4;i++){
+				tab[i] = 0x00;
+			}
+			
+			for(i=0;i<4;i++)
+			{
+				tab[4+i*4] = 0xE0; //
+				tab[5+i*4] = 0x00;
+				tab[6+i*4] = 0x00;
+				tab[7+i*4] = 0x00;
+			}
+			
+			for (i=71;i<76;i++){
+				tab[i] = 0xFF;
+			}
+
+		Driver_SPI1.Send(tab,77);	
 		}
 	}
-}
+}*/
+
+void mySPI_Thread (void const *argument) {
+	char tab[100];
+	int i, nb_led;
 	
-char tab[12];
-osThreadDef (capteur_lumiere, osPriorityNormal,1,0); 
+while (1) {
+	
+	ADC_Value = lecture_capteur();
+	
+	for (i=0;i<4;i++){
+		tab[i] = 0;
+	}
+	
+		//if(ADC_Value < 100)
+		//{
+			LED_On(1);
+		for (nb_led = 0; nb_led <16;nb_led++){
+			tab[4+nb_led*4]=0xff;
+			tab[5+nb_led*4]=0xff;
+			tab[6+nb_led*4]=0xff;
+			tab[7+nb_led*4]=0xff;
+			}
+		//}
+		
+		//else if(ADC_Value > 100)
+		//{
+			LED_Off(1);
+		for (nb_led = 0; nb_led <16;nb_led++){
+			tab[4+nb_led*4]=0xe0;
+			tab[5+nb_led*4]=0x00;
+			tab[6+nb_led*4]=0x00;
+			tab[7+nb_led*4]=0x00;
+			}
+		//}
+	
+		// end
+		tab[68] = 0;
+		tab[69] = 0;
+		
+	
+
+		Driver_SPI1.Send(tab,70);
+		osDelay(1000);
+  }
+}
+
 
 int main(void)
 {
-	unsigned char lumiere;
-	
 	osKernelInitialize ();
   HAL_Init();
 
@@ -164,48 +250,36 @@ int main(void)
 	
 	
 	LED_Initialize();
-//	Init_SPI();
-//	Init_I2C();
+	Init_SPI();
 	init_PIN_PA0_ALS();
 	
-	ID_capteur_lumiere = osThreadCreate(osThread(capteur_lumiere),NULL);
+	tid_mySPI_Thread = osThreadCreate (osThread(mySPI_Thread), NULL);
 	
 	
-	
+	/*
 	//Start frame
-//	tab[0] = 0x00;
-//	tab[1] = 0x00;
-//	tab[2] = 0x00;
-//	tab[3] = 0x00;
-//	
-//	tab[4] = 0xFA;
-//	tab[5] = 0x00;
-//	tab[6] = 0x00;
-//	tab[7] = 0xFF;
-//	
-//	tab[8] = 0xFF;
-//	tab[9] = 0xFF;
-//	tab[10] = 0xFF;
-//	tab[11] = 0xFF;
+	tab[0] = 0x00;
+	tab[1] = 0x00;
+	tab[2] = 0x00;
+	tab[3] = 0x00;
 	
-
-
+	tab[4] = 0xFA;
+	tab[5] = 0x00;
+	tab[6] = 0x00;
+	tab[7] = 0xFF;
+	
+	tab[8] = 0xFF;
+	tab[9] = 0xFF;
+	tab[10] = 0xFF;
+	tab[11] = 0xFF;
+	
+	Driver_SPI1.Send(tab,12);
+*/
 
   
 
   osKernelStart();
 	osDelay(osWaitForever);
-
-
-//  while (1)
-//  {
-//		LED_On (1);
-//		LED_On (2);
-//		LED_On (3);
-		
-//		Driver_SPI1.Send(tab,12);
-//		lumiere = read1byte(SLAVE_I2C_ADDR,0x08);
-//	}
 }
 
 /**

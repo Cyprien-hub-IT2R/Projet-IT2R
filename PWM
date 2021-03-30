@@ -1,0 +1,119 @@
+/*----------------------------------------------------------------------------
+ * CMSIS-RTOS 'main' function template
+ *---------------------------------------------------------------------------*/
+
+#define osObjectsPublic                     // define objects in main module
+#include "osObjects.h"                      // RTOS object definitions
+#include "GPIO.h"          
+#include "Board_GLCD.h"                 // ::Board Support:Graphic LCD
+#include "GLCD_Config.h"                // Keil.MCB1700::Board Support:Graphic LCD
+#include "stdio.h"
+#include "GPIO_LPC17xx.h"
+#include <LPC17xx.h>
+#include "Driver_USART.h"               // ::CMSIS Driver:USART
+
+extern ARM_DRIVER_USART Driver_USART1;
+extern GLCD_FONT GLCD_Font_6x8;
+extern GLCD_FONT GLCD_Font_16x24;
+
+void tache1 (void const *arg);
+void tache2 (void const *arg);
+
+osThreadId ID_tache1;
+osThreadId ID_tache2;
+
+osThreadDef (tache1,osPriorityNormal,1,0);
+osThreadDef (tache2,osPriorityNormal,1,0);
+
+
+void Init_UART(void){
+	Driver_USART1.Initialize(NULL);
+	Driver_USART1.PowerControl(ARM_POWER_FULL);
+	Driver_USART1.Control(	ARM_USART_MODE_ASYNCHRONOUS |
+							ARM_USART_DATA_BITS_8		|
+							ARM_USART_STOP_BITS_1		|
+							ARM_USART_PARITY_NONE		|
+							ARM_USART_FLOW_CONTROL_NONE,
+							115200);
+	Driver_USART1.Control(ARM_USART_CONTROL_TX,1);
+	Driver_USART1.Control(ARM_USART_CONTROL_RX,1);
+}
+
+void tache1 (void const *arg)  //PWM
+{
+	int INA,INB;
+	
+	while(1)
+	{
+		LPC_GPIO0->FIOPIN2 = LPC_GPIO0->FIOPIN2 | 0x01; //:ina BROCHE 0.16 � 1	
+
+		if((LPC_GPIO0->FIOPIN2 & 0x01) == 0x01)
+		{
+			Allumer_1LED(0);
+		}			
+	LPC_PWM1->MR2 = LPC_PWM1->MR2 +20;    // ceci ajuste la duree de l'etat haut ; mr2 pour P3.25
+		osDelay(1000);
+		if (LPC_PWM1->MR2 >= 2480) LPC_PWM1->MR2=0;
+	}
+}
+
+void tache2 (void const *arg)    //UART
+{
+	int Y;
+	char tab[20],tableau[20];
+	while (1){/*
+		sprintf(tableau,"Saisissez Y :");
+		Y = scanf("Y : %d",&Y);
+		
+		while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
+		Driver_USART1.Send(tableau,3);
+		
+		Driver_USART1.Receive(tab,1);
+		while (Driver_USART1.GetRxCount() < 1);
+		
+		GLCD_DrawString(50,1,tab);*/
+	}	
+}
+
+/*
+ * main: initialize and start the system
+ */
+int main (void) {
+	char texte[20] = "GOOD";
+  osKernelInitialize ();                    // initialize CMSIS-RTOS
+  
+	Init_UART();
+  Initialise_GPIO();
+	GLCD_Initialize();
+	GLCD_ClearScreen();
+	GLCD_SetFont(&GLCD_Font_16x24);
+	
+LPC_GPIO0->FIODIR2 = LPC_GPIO0->FIODIR2 | 0x05; //INA et INB en sortie
+
+
+LPC_SC->PCONP = LPC_SC->PCONP | 0x00000040;   // enable PWM1
+	LPC_PWM1->PR = 0;  // prescaler
+		
+
+  LPC_PWM1->MR0 = 2499;    // Ceci ajuste la p?riode de la PWM ? 48 us
+	LPC_PWM1->MR2 = 0;    // ceci ajuste la duree de l'etat haut ; mr2 pour P3.25
+	
+	LPC_PINCON->PINSEL7 |= (3<<18); //  P3.25 est la sortie PWM Channel 3 de Timer 1
+	
+	LPC_PWM1->MCR = LPC_PWM1->MCR | 0x00000002; // Timer relance quand MR0 repasse � 0
+	LPC_PWM1->LER = LPC_PWM1->LER | 0x00000005;  // ceci donne le droit de modifier dynamiquement la valeur du rapport cyclique
+	                                             // bit 0 = MR0    bit2 = MR2
+	LPC_PWM1->PCR |= (1<<10);  // autorise la sortie PWM
+	                                
+  LPC_PWM1->TCR = 1;  /*validation de timer 1 et reset counter */
+		
+	GLCD_DrawString(1,1,texte);
+
+
+ID_tache1 = osThreadCreate(osThread(tache1),NULL);
+ID_tache2 = osThreadCreate(osThread(tache1),NULL);
+
+
+  osKernelStart ();                         // start thread execution 
+	osDelay(osWaitForever);
+}

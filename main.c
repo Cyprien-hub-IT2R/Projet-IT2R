@@ -194,47 +194,46 @@ extern void capteur_lumiere (void const * arg)
 }*/
 
 void mySPI_Thread (void const *argument) {
-	char tab[100];
+	char tab[500];
 	int i, nb_led;
 	
-while (1) {
+	while(1){
+		ADC_Value = lecture_capteur();
 	
-	ADC_Value = lecture_capteur();
-	
-	for (i=0;i<4;i++){
-		tab[i] = 0;
-	}
-	
-		//if(ADC_Value < 100)
-		//{
-			LED_On(1);
-		for (nb_led = 0; nb_led <16;nb_led++){
-			tab[4+nb_led*4]=0xff;
-			tab[5+nb_led*4]=0xff;
-			tab[6+nb_led*4]=0xff;
-			tab[7+nb_led*4]=0xff;
-			}
-		//}
-		
-		//else if(ADC_Value > 100)
-		//{
-			LED_Off(1);
-		for (nb_led = 0; nb_led <16;nb_led++){
-			tab[4+nb_led*4]=0xe0;
-			tab[5+nb_led*4]=0x00;
-			tab[6+nb_led*4]=0x00;
-			tab[7+nb_led*4]=0x00;
-			}
-		//}
+		for (i=0;i<4;i++)
+		{
+			tab[i] = 0;
+		}
 	
 		// end
-		tab[68] = 0;
-		tab[69] = 0;
-		
-	
+		tab[68] = 0; 
+		tab[69] = 0; // (7+nb_led*4) -2
 
+		
+		// Voir si on peut tout allumer seulement quand on a approché le RFID
+		
+		if(ADC_Value < 100) //NUIT
+		{
+			//2 x 4 leds phares  blancs avant 
+			for (nb_led = 0; nb_led <8;nb_led++)
+			{
+				tab[4+nb_led*4]=0xef;
+				tab[5+nb_led*4]=0xff; //Bleu
+				tab[6+nb_led*4]=0xff; //Vert
+				tab[7+nb_led*4]=0xff; //Rouge
+			}	
+		}
+		
+			// 2 x 4 leds rouges arrière
+			for (nb_led = 8; nb_led <16;nb_led++)
+			{
+				tab[4+nb_led*4]=0xeF;
+				tab[5+nb_led*4]=0x00; //Bleu
+				tab[6+nb_led*4]=0x00; //Vert
+				tab[7+nb_led*4]=0xff; //Rouge
+			}	
+		
 		Driver_SPI1.Send(tab,70);
-		osDelay(1000);
   }
 }
 

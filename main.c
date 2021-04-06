@@ -1,10 +1,18 @@
 /* Includes ------------------------------------------------------------------*/
 #define osObjectsPublic                     // define objects in main module
-#include "osObjects.h"  
-#include "main.h"
+#include "osObjects.h"                      // RTOS object definitions
+#include <stdio.h>
 #include "Board_LED.h"                  // ::Board Support:LED
+#include "Driver_USART.h"               // ::CMSIS Driver:USART
+#include "stm32f4xx.h"                  // Device header
+#include "stm32f4xx_hal_conf.h"         // Keil::Device:STM32Cube Framework:Classic
+#include "stm32f4xx_hal.h"              // Keil::Device:STM32Cube HAL:Common
+#include "Driver_USART.h"               // ::CMSIS Driver:USART
+#include "main.h"
+#include <string.h>
+
 #include "Driver_SPI.h"
-#include "cmsis_os.h"                   // CMSIS RTOS header file
+
 
 #ifdef _RTE_
 #include "RTE_Components.h"             // Component selection
@@ -12,15 +20,9 @@
 #ifdef RTE_CMSIS_RTOS2                  // when RTE component CMSIS RTOS2 is used
 #include "cmsis_os2.h"                  // ::CMSIS:RTOS2
 #endif
-
-ADC_HandleTypeDef myADC2Handle;
-
-
-
 #ifdef RTE_CMSIS_RTOS2_RTX5
-/**
-  * Override default HAL_GetTick function
-  */
+
+
 uint32_t HAL_GetTick (void) {
   static uint32_t ticks = 0U;
          uint32_t i;
@@ -53,56 +55,31 @@ uint32_t HAL_GetTick (void) {
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
+
 static void SystemClock_Config(void);
 static void Error_Handler(void);
 
-/* Private functions ---------------------------------------------------------*/
-/**
-  * @brief  Main program
-  * @param  None
-  * @retval None
-  */
-	
+extern ARM_DRIVER_USART Driver_USART1;
+osThreadId ID_rfid;
 
 extern ARM_DRIVER_SPI Driver_SPI1;
 
-void mySPI_Thread (void const *argument);                             // thread function
-osThreadId tid_mySPI_Thread;                                          // thread id
-osThreadDef (mySPI_Thread, osPriorityNormal, 1, 0);                   // thread object
 
-	
-ADC_HandleTypeDef myADC2Handle;
+osThreadId ID_rfid;
 
-//Fonction d'initalisation de l'ADC2, sur PA0, pour la lecture du Ambiente Luminescence Sensor (ALS)
-void init_PIN_PA0_ALS()
-{
-	GPIO_InitTypeDef ADCpin; //Création de structure de config PIN_ANALOG
-	ADC_ChannelConfTypeDef Channel_AN0; // Création de structure de config ADC
-	
-	//Intialisation PA0
-__HAL_RCC_GPIOA_CLK_ENABLE(); // activation Horloge GPIOA
-	ADCpin.Pin = GPIO_PIN_0; // Selection pin PA0
-	ADCpin.Mode = GPIO_MODE_ANALOG; // Selection mode analogique
-	ADCpin.Pull = GPIO_NOPULL; // Désactivation des résistance de pull-up et pull-down
-	
-	//Paramétrage ADC2 
-__HAL_RCC_ADC2_CLK_ENABLE(); // activation Horloge ADC2
-	myADC2Handle.Instance = ADC2; // Selection de ADC2
-	myADC2Handle.Init.Resolution = ADC_RESOLUTION_8B; // Selection résolution 8 bits 
-	myADC2Handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV; //Selection du mode single pour l'EOC(end of conversion)
-	myADC2Handle.Init.DataAlign = ADC_DATAALIGN_RIGHT; // Alignement des data à gauche des octets
-	myADC2Handle.Init.ClockPrescaler =ADC_CLOCK_SYNC_PCLK_DIV8; //Syncronisation des horloges
-	
-	//Paramètrage CHANEL0
-	Channel_AN0.Channel = ADC_CHANNEL_0; // Selection analog channel 0
-	Channel_AN0.Rank = 1; // Selection du Rang : 1
-	Channel_AN0.SamplingTime = ADC_SAMPLETIME_15CYCLES; // Selection du temps d'échentillonage à 15
-	
-	HAL_GPIO_Init(GPIOA, &ADCpin); // Initialisation PA0 avec les paramètre ci-dessus
-	HAL_ADC_Init(&myADC2Handle); // Initialisation ADC2 avec les paramètre ci-dessus
-	HAL_ADC_ConfigChannel(&myADC2Handle, &Channel_AN0); // Initialisation Chanel_0 avec les paramètre ci-dessus. 
+
+void Init_UART(void){
+	Driver_USART1.Initialize(NULL);
+	Driver_USART1.PowerControl(ARM_POWER_FULL);
+	Driver_USART1.Control(	ARM_USART_MODE_ASYNCHRONOUS |
+							ARM_USART_DATA_BITS_8		|
+							ARM_USART_STOP_BITS_1		|
+							ARM_USART_PARITY_NONE		|
+							ARM_USART_FLOW_CONTROL_NONE,
+							9600);
+	Driver_USART1.Control(ARM_USART_CONTROL_TX,1);
+	Driver_USART1.Control(ARM_USART_CONTROL_RX,1);
 }
-
 
 void Init_SPI(void){
 	Driver_SPI1.Initialize(NULL);
@@ -115,128 +92,137 @@ void Init_SPI(void){
 	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
 }
 
+char tab[250], tab1[250], tab2[250];
 
-int ADC_Value;
-
-int lecture_capteur()
+void AllumerLED()
 {
-		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
-		
-		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //check if conversion is completed
-		{
-			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); // read digital value and save it inside uint32_t variable
-		}
-		HAL_ADC_Stop(&myADC2Handle); // stop conversion
-		
-		return ADC_Value;
-}
-
-/*
-extern void capteur_lumiere (void const * arg)
-{
-	char tab[100];
 	int i, nb_led;
-	while (1)
+	
+	for (i=0;i<4;i++)
 	{
-		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
-		
-		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //check if conversion is completed
-		{
-			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); // read digital value and save it inside uint32_t variable
-		}
-		HAL_ADC_Stop(&myADC2Handle); // stop conversion
-		
-		//NUIT
-		if(ADC_Value < 100)
-		{
-			for (i=0;i<4;i++){
-				tab[i] = 0x00;
-			}
-			
-			for(i=0;i<16;i++)
-			{
-				tab[4+i*4] = 0xFF; 
-				tab[5+i*4] = 0xFF;
-				tab[6+i*4] = 0xFF;
-				tab[7+i*4] = 0xFF;
-			}
-			
-			for (i=72;i<76;i++){
-				tab[i] = 0xFF;
-			}
-
-			Driver_SPI1.Send(tab,77);	
+		tab[i] = 0;
 	}
-
-		
-		//JOUR
-		else if(ADC_Value > 100)
-		{
-			for (i=0;i<4;i++){
-				tab[i] = 0x00;
-			}
-			
-			for(i=0;i<4;i++)
-			{
-				tab[4+i*4] = 0xE0; //
-				tab[5+i*4] = 0x00;
-				tab[6+i*4] = 0x00;
-				tab[7+i*4] = 0x00;
-			}
-			
-			for (i=71;i<76;i++){
-				tab[i] = 0xFF;
-			}
-
-		Driver_SPI1.Send(tab,77);	
-		}
-	}
-}*/
-
-void mySPI_Thread (void const *argument) {
-	char tab[500];
-	int i, nb_led;
 	
-	while(1){
-		ADC_Value = lecture_capteur();
+	// end
+	tab[248] = 0; 
+	tab[249] = 0; // (7+nb_led*4) -2
 	
-		for (i=0;i<4;i++)
-		{
-			tab[i] = 0;
-		}
-	
-		// end
-		tab[68] = 0; 
-		tab[69] = 0; // (7+nb_led*4) -2
-
-		
-		// Voir si on peut tout allumer seulement quand on a approché le RFID
-		
-		if(ADC_Value < 100) //NUIT
-		{
-			//2 x 4 leds phares  blancs avant 
-			for (nb_led = 0; nb_led <8;nb_led++)
-			{
-				tab[4+nb_led*4]=0xef;
-				tab[5+nb_led*4]=0xff; //Bleu
-				tab[6+nb_led*4]=0xff; //Vert
-				tab[7+nb_led*4]=0xff; //Rouge
-			}	
-		}
-		
-			// 2 x 4 leds rouges arrière
-			for (nb_led = 8; nb_led <16;nb_led++)
-			{
-				tab[4+nb_led*4]=0xeF;
-				tab[5+nb_led*4]=0x00; //Bleu
-				tab[6+nb_led*4]=0x00; //Vert
-				tab[7+nb_led*4]=0xff; //Rouge
-			}	
-		
-		Driver_SPI1.Send(tab,70);
-  }
+	//2x4 phares 
+	for (nb_led = 0; nb_led <61;nb_led++)
+	{
+		tab[4+nb_led*4]=0xef;
+		tab[5+nb_led*4]=0x00; //Bleu
+		tab[6+nb_led*4]=0x25; //Vert
+		tab[7+nb_led*4]=0xff; //Rouge
+	}	
+	Driver_SPI1.Send(tab,250);
 }
 
+void AllumerLEDNON()
+{
+	int i, nb_led;
+	
+	for (i=0;i<4;i++)
+	{
+		tab2[i] = 0;
+	}
+	
+	// end
+	tab2[248] = 0; 
+	tab2[249] = 0; // (7+nb_led*4) -2
+	
+	//2x4 phares 
+	for (nb_led = 0; nb_led <61;nb_led++)
+	{
+		tab2[4+nb_led*4]=0xef;
+		tab2[5+nb_led*4]=0x00; //Bleu
+		tab2[6+nb_led*4]=0x00; //Vert
+		tab2[7+nb_led*4]=0xff; //Rouge
+	}	
+	Driver_SPI1.Send(tab2,250);
+}
+
+void EteindreLED()
+{
+	int i, nb_led;
+	
+	for (i=0;i<4;i++)
+	{
+		tab1[i] = 0;
+	}
+	
+	// end
+	tab1[248] = 0; 
+	tab1[249] = 0; // (7+nb_led*4) -2
+	
+	for (nb_led = 0; nb_led <67;nb_led++)
+	{
+		tab1[4+nb_led*4]=0xe0;
+		tab1[5+nb_led*4]=0x00; //Bleu
+		tab1[6+nb_led*4]=0x00; //Vert
+		tab1[7+nb_led*4]=0x00; //Rouge
+	}	
+
+	Driver_SPI1.Send(tab1,250);
+}
+
+
+void rfidUART(void const*argument){
+	char rfid[14], chaine_rfid[8], idValide[8] = {'0','0','8','C','2','3','E','9'};	
+	int i, badgeOK=1;
+	
+	while (1)
+  {
+			Driver_USART1.Receive(rfid,14); 
+			while(Driver_USART1.GetRxCount()<1);
+			for(i=0;i<8;i++)
+			{
+					chaine_rfid[i]=rfid[i+3];
+			}		
+
+			if(strncmp(chaine_rfid,idValide,8)==0) //Les deux ID sont =
+			{
+				LED_On(1);
+				LED_Off(3);
+				AllumerLED();
+				osDelay(400);
+				EteindreLED();
+				osDelay(350);
+				AllumerLED();
+				osDelay(800);
+				EteindreLED();	
+			}
+			
+			else if(strncmp(chaine_rfid,idValide,8)==1)
+			{
+				LED_On(3);
+				LED_Off(1);
+				badgeOK=0;
+				//Pas le bon badge, bruit méchant
+				AllumerLEDNON();
+				osDelay(200);
+				EteindreLED();
+				osDelay(200);
+				AllumerLEDNON();
+				osDelay(200);
+				EteindreLED();
+				osDelay(200);
+				AllumerLEDNON();
+				osDelay(200);
+				EteindreLED();			
+			}
+		}
+}
+
+
+/* Private functions ---------------------------------------------------------*/
+/**
+  * @brief  Main program
+  * @param  None
+  * @retval None
+  */
+
+osThreadDef(rfidUART,osPriorityNormal,1,0);  
 
 int main(void)
 {
@@ -246,40 +232,24 @@ int main(void)
   /* Configure the system clock to 168 MHz */
   SystemClock_Config();
   SystemCoreClockUpdate();
-	
-	
+
+  /* Add your application code here
+     */
 	LED_Initialize();
+	Init_UART();
 	Init_SPI();
-	init_PIN_PA0_ALS();
-	
-	tid_mySPI_Thread = osThreadCreate (osThread(mySPI_Thread), NULL);
-	
-	
-	/*
-	//Start frame
-	tab[0] = 0x00;
-	tab[1] = 0x00;
-	tab[2] = 0x00;
-	tab[3] = 0x00;
-	
-	tab[4] = 0xFA;
-	tab[5] = 0x00;
-	tab[6] = 0x00;
-	tab[7] = 0xFF;
-	
-	tab[8] = 0xFF;
-	tab[9] = 0xFF;
-	tab[10] = 0xFF;
-	tab[11] = 0xFF;
-	
-	Driver_SPI1.Send(tab,12);
-*/
 
-  
 
+  /* Create thread functions that start executing, 
+  Example: osThreadNew(app_main, NULL, NULL); */
+  ID_rfid = osThreadCreate(osThread(rfidUART),NULL);
+
+  /* Start thread execution */
   osKernelStart();
 	osDelay(osWaitForever);
 }
+
+
 
 /**
   * @brief  System Clock Configuration
@@ -301,6 +271,7 @@ int main(void)
   * @param  None
   * @retval None
   */
+	
 static void SystemClock_Config(void)
 {
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
@@ -385,6 +356,7 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 #endif
 
+
 /**
   * @}
   */ 
@@ -394,5 +366,4 @@ void assert_failed(uint8_t* file, uint32_t line)
   */ 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
 

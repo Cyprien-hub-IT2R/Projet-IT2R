@@ -49,9 +49,6 @@ void InitCan2 (void)
 // tache envoi toutes les secondes
 void CANthreadT(void const *argument)
 {
-	char identifiant,retour;
-	char texte1[10];
-	char texte2[10];
 	uint8_t data_buf[8];
 	ARM_CAN_MSG_INFO tx_msg_info;
 	
@@ -60,9 +57,21 @@ void CANthreadT(void const *argument)
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x002);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		identifiant = tx_msg_info.id;
-		data_buf [0] = 0x55; // data à envoyer à placer dans un tableau de char
-		retour = data_buf [0] ; // 1ère donnée de la trame récupérée (char)
+		data_buf [0] = 0x22; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x003);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = 0x33; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x004);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = 0x44; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission

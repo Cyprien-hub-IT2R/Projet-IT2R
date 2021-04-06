@@ -19,9 +19,9 @@ extern GLCD_FONT GLCD_Font_6x8;
 extern GLCD_FONT GLCD_Font_16x24;
 
 typedef struct{
-		char data_ultrason;
-		char data_phares;
-		char data_gps;
+		char  data_ultrason;
+		char  data_phares;
+		char  data_gps;
 	}MaStruct;
 
 extern   ARM_DRIVER_CAN         Driver_CAN1;
@@ -113,9 +113,6 @@ void CANthreadT(void const *argument)
 {
 	ARM_CAN_MSG_INFO tx_msg_info;
 	
-	char identifiant,retour;
-	char texte1[10];
-	char texte2[10];
 	uint8_t data_buf[8];
 
 	while (1)
@@ -124,9 +121,7 @@ void CANthreadT(void const *argument)
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x001);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		identifiant = tx_msg_info.id; // (int)
 		data_buf [0] = 0x55; // data à envoyer à placer dans un tableau de char
-		retour = data_buf [0] ; // 1ère donnée de la trame récupérée (char)
 		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 
 		osDelay(50);
@@ -139,24 +134,18 @@ void CANthreadR(void const *argument)
 	ARM_CAN_MSG_INFO  rx_msg_info;
 	uint8_t data_buf[8];
 	MaStruct *ptr;
-	char taille,identifiant,retour;
-	char texte1[20];
-	char texte2[20];
+//	char taille,retour;
+	short identifiant;
 	
 	while(1)
 	{
 		osSignalWait(0x01, osWaitForever);		// sommeil en attente réception
 		
-		Driver_CAN1.MessageRead(0, &rx_msg_info, data_buf, 8); // 8 data max
+		Driver_CAN1.MessageRead(0, &rx_msg_info, data_buf, 32); // 8 data max
 		
 		identifiant = rx_msg_info.id;
-		taille = rx_msg_info.dlc; // nb data (char)
-		retour = data_buf[0];
-		
-//		sprintf(texte1,"ID= 0x%X",identifiant);
-//		GLCD_DrawString(1,1,(unsigned char*)texte1);
-//		sprintf(texte2,"DATA= 0x%X",retour);
-//		GLCD_DrawString(1,30,(unsigned char*)texte2);
+//		taille = rx_msg_info.dlc; // nb data (char)
+//		retour = data_buf[0];
 		
 		switch(identifiant){
 	
@@ -207,7 +196,7 @@ void ultrason(void const *argument)
 			valeur_recue = *recep ; // ...et la valeur pointée
 			osMailFree(ID_BAL_ultrason, recep); // libération mémoire allouée
 			
-			sprintf(chaine_ultrason,"ULTRASON 0x002 : %d",valeur_recue.data_ultrason);
+			sprintf(chaine_ultrason,"ULTR 0x002 : 0x%X",valeur_recue.data_ultrason);
 			GLCD_DrawString(1,1,(unsigned char*)chaine_ultrason);
 				
 			osDelay(50);
@@ -216,6 +205,7 @@ void ultrason(void const *argument)
 
 void phares(void const *argument)
 {
+	char chaine_phares[20];
 	osEvent result;
 	MaStruct *recep;
 	MaStruct valeur_recue;
@@ -227,12 +217,16 @@ void phares(void const *argument)
 		valeur_recue = *recep ; // ...et la valeur pointée
 		osMailFree(ID_BAL_phares, recep); // libération mémoire allouée
 		
+		sprintf(chaine_phares,"PHAR 0x003 : 0x%X",valeur_recue.data_phares);
+		GLCD_DrawString(1,31,(unsigned char*)chaine_phares);
+		
 		osDelay(50);
 	}		
 }
 
 void gps(void const *argument)
 {
+	char chaine_gps[20];
 	osEvent result;
 	MaStruct *recep;
 	MaStruct valeur_recue;
@@ -243,6 +237,9 @@ void gps(void const *argument)
 		recep = result.value.p; // on cible le pointeur...
 		valeur_recue = *recep ; // ...et la valeur pointée
 		osMailFree(ID_BAL_gps, recep); // libération mémoire allouée
+		
+		sprintf(chaine_gps,"PHAR 0x003 : 0x%X",valeur_recue.data_gps);
+		GLCD_DrawString(1,31,(unsigned char*)chaine_gps);
 		
 		osDelay(50);
 	}		

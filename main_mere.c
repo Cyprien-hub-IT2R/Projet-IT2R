@@ -268,11 +268,13 @@ int main (void)
 	osKernelInitialize ();
 	
 	ID_BAL_ultrason = osMailCreate(osMailQ(NOM_BAL_ultrason), NULL);
+	ID_BAL_phares = osMailCreate(osMailQ(NOM_BAL_phares), NULL);
+	ID_BAL_gps = osMailCreate(osMailQ(NOM_BAL_gps), NULL);
 	id_CANthreadR = osThreadCreate (osThread(CANthreadR), NULL);
-//	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
+	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
 	id_ultrason = osThreadCreate (osThread(ultrason), NULL);
-//	id_phares = osThreadCreate (osThread(phares), NULL);
-//	id_gps = osThreadCreate (osThread(gps), NULL);
+	id_phares = osThreadCreate (osThread(phares), NULL);
+	id_gps = osThreadCreate (osThread(gps), NULL);
 
   osKernelStart ();                         // start thread execution 
 	osDelay(osWaitForever);

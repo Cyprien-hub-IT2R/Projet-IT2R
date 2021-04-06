@@ -27,6 +27,9 @@ typedef struct{
 extern   ARM_DRIVER_CAN         Driver_CAN1;
 extern   ARM_DRIVER_CAN         Driver_CAN2;
 
+osMutexId ID_mut_GLCD; // Mutex pour accès LCD
+osMutexDef (mut_GLCD);
+	
 osMailQId ID_BAL_ultrason ;
 osMailQDef (NOM_BAL_ultrason, 20,MaStruct) ;
 	
@@ -154,29 +157,26 @@ void CANthreadR(void const *argument)
 				//stockage information data capteur ultrason
 				ptr = osMailAlloc(ID_BAL_ultrason, osWaitForever);
 				ptr -> data_ultrason = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_ultrason, ptr);
-				
-				// reveille tache à effectuer
+				osMailPut(ID_BAL_ultrason, ptr); // reveille tache à effectuer
+
 				break;
 			
 			case 0x003 :
-				
+
 				// Reception  data status capteur luminosité + LEDS (phares)
 				ptr = osMailAlloc(ID_BAL_phares, osWaitForever);
 				ptr -> data_phares = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_phares, ptr);
-				
-				// reveille tache à effectuer
+				osMailPut(ID_BAL_phares, ptr); // reveille tache à effectuer
+
 				break;
 			
 			case 0x004:
-				
+			
 				// Reception data GPS
 				ptr = osMailAlloc(ID_BAL_gps, osWaitForever);
 				ptr -> data_gps = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_gps, ptr);
-				
-				// reveille tache à effectuer
+				osMailPut(ID_BAL_gps, ptr); // reveille tache à effectuer
+
 				break;
 		}
 	}
@@ -191,14 +191,18 @@ void ultrason(void const *argument)
 
 		while(1)
 		{
+			osMutexWait(ID_mut_GLCD, osWaitForever);
+			
 			result = osMailGet(ID_BAL_ultrason, osWaitForever); // attente mail
 			recep = result.value.p; // on cible le pointeur...
 			valeur_recue = *recep ; // ...et la valeur pointée
 			osMailFree(ID_BAL_ultrason, recep); // libération mémoire allouée
 			
-			sprintf(chaine_ultrason,"ULTR 0x002 : 0x%X",valeur_recue.data_ultrason);
+			sprintf(chaine_ultrason,"ULTR 2 = 0x%X",valeur_recue.data_ultrason);
 			GLCD_DrawString(1,1,(unsigned char*)chaine_ultrason);
-				
+						
+			osMutexRelease(ID_mut_GLCD); // libération SC	
+			
 			osDelay(50);
 		}
 }
@@ -212,14 +216,18 @@ void phares(void const *argument)
 	
 	while(1)
 	{
+		osMutexWait(ID_mut_GLCD, osWaitForever);
+			
 		result = osMailGet(ID_BAL_phares, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
 		valeur_recue = *recep ; // ...et la valeur pointée
 		osMailFree(ID_BAL_phares, recep); // libération mémoire allouée
 		
-		sprintf(chaine_phares,"PHAR 0x003 : 0x%X",valeur_recue.data_phares);
-		GLCD_DrawString(1,31,(unsigned char*)chaine_phares);
-		
+		sprintf(chaine_phares,"PHAR 3 = 0x%X",valeur_recue.data_phares);
+		GLCD_DrawString(1,51,(unsigned char*)chaine_phares);
+						
+		osMutexRelease(ID_mut_GLCD); // libération SC	
+			
 		osDelay(50);
 	}		
 }
@@ -233,14 +241,18 @@ void gps(void const *argument)
 	
 	while(1)
 	{
+		osMutexWait(ID_mut_GLCD, osWaitForever);
+			
 		result = osMailGet(ID_BAL_gps, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
 		valeur_recue = *recep ; // ...et la valeur pointée
 		osMailFree(ID_BAL_gps, recep); // libération mémoire allouée
 		
-		sprintf(chaine_gps,"PHAR 0x003 : 0x%X",valeur_recue.data_gps);
-		GLCD_DrawString(1,31,(unsigned char*)chaine_gps);
-		
+		sprintf(chaine_gps,"GPS 4 = 0x%X",valeur_recue.data_gps);
+		GLCD_DrawString(1,101,(unsigned char*)chaine_gps);
+						
+		osMutexRelease(ID_mut_GLCD); // libération SC	
+			
 		osDelay(50);
 	}		
 }
@@ -264,9 +276,12 @@ int main (void)
 	
 	osKernelInitialize ();
 	
+	ID_mut_GLCD = osMutexCreate(osMutex(mut_GLCD)) ;
+	
 	ID_BAL_ultrason = osMailCreate(osMailQ(NOM_BAL_ultrason), NULL);
 	ID_BAL_phares = osMailCreate(osMailQ(NOM_BAL_phares), NULL);
 	ID_BAL_gps = osMailCreate(osMailQ(NOM_BAL_gps), NULL);
+	
 	id_CANthreadR = osThreadCreate (osThread(CANthreadR), NULL);
 	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
 	id_ultrason = osThreadCreate (osThread(ultrason), NULL);

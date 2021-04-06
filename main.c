@@ -11,6 +11,8 @@
 #include "main.h"
 #include <string.h>
 
+#include "Driver_SPI.h"
+
 
 #ifdef _RTE_
 #include "RTE_Components.h"             // Component selection
@@ -58,9 +60,12 @@ static void SystemClock_Config(void);
 static void Error_Handler(void);
 
 extern ARM_DRIVER_USART Driver_USART1;
+osThreadId ID_rfid;
+
+extern ARM_DRIVER_SPI Driver_SPI1;
+
 
 osThreadId ID_rfid;
-int badgeOK;
 
 
 void Init_UART(void){
@@ -76,39 +81,137 @@ void Init_UART(void){
 	Driver_USART1.Control(ARM_USART_CONTROL_RX,1);
 }
 
-char rfid[14], chaine_rfid[8], idValide[8] = {'0','0','8','C','2','3','E','9'};	
+void Init_SPI(void){
+	Driver_SPI1.Initialize(NULL);
+	Driver_SPI1.PowerControl(ARM_POWER_FULL);
+	Driver_SPI1.Control(ARM_SPI_MODE_MASTER | 
+											ARM_SPI_CPOL1_CPHA1 | 
+//											ARM_SPI_MSB_LSB | 
+											ARM_SPI_SS_MASTER_UNUSED |
+											ARM_SPI_DATA_BITS(8), 1000000);
+	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
+}
+
+char tab[250], tab1[250], tab2[250];
+
+void AllumerLED()
+{
+	int i, nb_led;
+	
+	for (i=0;i<4;i++)
+	{
+		tab[i] = 0;
+	}
+	
+	// end
+	tab[248] = 0; 
+	tab[249] = 0; // (7+nb_led*4) -2
+	
+	//2x4 phares 
+	for (nb_led = 0; nb_led <61;nb_led++)
+	{
+		tab[4+nb_led*4]=0xef;
+		tab[5+nb_led*4]=0x00; //Bleu
+		tab[6+nb_led*4]=0x25; //Vert
+		tab[7+nb_led*4]=0xff; //Rouge
+	}	
+	Driver_SPI1.Send(tab,250);
+}
+
+void AllumerLEDNON()
+{
+	int i, nb_led;
+	
+	for (i=0;i<4;i++)
+	{
+		tab2[i] = 0;
+	}
+	
+	// end
+	tab2[248] = 0; 
+	tab2[249] = 0; // (7+nb_led*4) -2
+	
+	//2x4 phares 
+	for (nb_led = 0; nb_led <61;nb_led++)
+	{
+		tab2[4+nb_led*4]=0xef;
+		tab2[5+nb_led*4]=0x00; //Bleu
+		tab2[6+nb_led*4]=0x00; //Vert
+		tab2[7+nb_led*4]=0xff; //Rouge
+	}	
+	Driver_SPI1.Send(tab2,250);
+}
+
+void EteindreLED()
+{
+	int i, nb_led;
+	
+	for (i=0;i<4;i++)
+	{
+		tab1[i] = 0;
+	}
+	
+	// end
+	tab1[248] = 0; 
+	tab1[249] = 0; // (7+nb_led*4) -2
+	
+	for (nb_led = 0; nb_led <67;nb_led++)
+	{
+		tab1[4+nb_led*4]=0xe0;
+		tab1[5+nb_led*4]=0x00; //Bleu
+		tab1[6+nb_led*4]=0x00; //Vert
+		tab1[7+nb_led*4]=0x00; //Rouge
+	}	
+
+	Driver_SPI1.Send(tab1,250);
+}
+
+
 void rfidUART(void const*argument){
-	int i;
+	char rfid[14], chaine_rfid[8], idValide[8] = {'0','0','8','C','2','3','E','9'};	
+	int i, badgeOK=1;
+	
 	while (1)
   {
 			Driver_USART1.Receive(rfid,14); 
 			while(Driver_USART1.GetRxCount()<1);
-			osDelay(1000);	
 			for(i=0;i<8;i++)
 			{
 					chaine_rfid[i]=rfid[i+3];
 			}		
-			//while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
-			//Driver_USART1.Send(chaine_rfid,8);
+
 			if(strncmp(chaine_rfid,idValide,8)==0) //Les deux ID sont =
 			{
-				badgeOK  = 1;
-				while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
-				Driver_USART1.Send("Vrai\n\r",6);
-				LED_On(3);
-				LED_Off(1);
-			}
-			else
-			{
-				badgeOK=0;
-				while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
-				Driver_USART1.Send("Faux\n\r",6);
-				//Pas le bon badge, bruit méchant
 				LED_On(1);
 				LED_Off(3);
+				AllumerLED();
+				osDelay(400);
+				EteindreLED();
+				osDelay(350);
+				AllumerLED();
+				osDelay(800);
+				EteindreLED();	
 			}
-	}
-	
+			
+			else if(strncmp(chaine_rfid,idValide,8)==1)
+			{
+				LED_On(3);
+				LED_Off(1);
+				badgeOK=0;
+				//Pas le bon badge, bruit méchant
+				AllumerLEDNON();
+				osDelay(200);
+				EteindreLED();
+				osDelay(200);
+				AllumerLEDNON();
+				osDelay(200);
+				EteindreLED();
+				osDelay(200);
+				AllumerLEDNON();
+				osDelay(200);
+				EteindreLED();			
+			}
+		}
 }
 
 
@@ -119,7 +222,7 @@ void rfidUART(void const*argument){
   * @retval None
   */
 
-osThreadDef(rfidUART,osPriorityNormal,1,0);
+osThreadDef(rfidUART,osPriorityNormal,1,0);  
 
 int main(void)
 {
@@ -134,6 +237,9 @@ int main(void)
      */
 	LED_Initialize();
 	Init_UART();
+	Init_SPI();
+	
+	LED_On(3);
 
 
   /* Create thread functions that start executing, 

@@ -155,7 +155,7 @@ void EteindreLED()
 	tab1[248] = 0; 
 	tab1[249] = 0; // (7+nb_led*4) -2
 	
-	for (nb_led = 0; nb_led <67;nb_led++)
+	for (nb_led = 0; nb_led <61;nb_led++)
 	{
 		tab1[4+nb_led*4]=0xe0;
 		tab1[5+nb_led*4]=0x00; //Bleu
@@ -175,11 +175,11 @@ void rfidUART(void const*argument){
   {
 			Driver_USART1.Receive(rfid,14); 
 			while(Driver_USART1.GetRxCount()<1);
+		  osDelay(300);
 			for(i=0;i<8;i++)
 			{
 					chaine_rfid[i]=rfid[i+3];
 			}		
-
 			if(strncmp(chaine_rfid,idValide,8)==0) //Les deux ID sont =
 			{
 				LED_On(1);
@@ -193,7 +193,7 @@ void rfidUART(void const*argument){
 				EteindreLED();	
 			}
 			
-			else if(strncmp(chaine_rfid,idValide,8)==1)
+			else if(strncmp(chaine_rfid,idValide,8)!=0)
 			{
 				LED_On(3);
 				LED_Off(1);
@@ -238,8 +238,6 @@ int main(void)
 	LED_Initialize();
 	Init_UART();
 	Init_SPI();
-	
-	LED_On(3);
 
 
   /* Create thread functions that start executing, 

@@ -5,14 +5,38 @@ Ex Interface CAN
 // XM, 03/02/2021
 ------------------------------------------- */
 // A ajouter dans windowDLG
-//char ultr=0, phar=0, gps=0;
-// USER END
-//#include "DIALOG.h"
-//#include "stdio.h"
+/*
+
+char ultr=0, phar=0, gps=0;
+#include "stdio.h"
+
+char text_ultrason[20];
+char text_phares[20];
+char text_gps[20];
 
 #ifdef _RTE_
 #include "RTE_Components.h"             // Component selection
 #endif
+
+case WM_USER: // mise a jour si informations arrivee au niveau thread UART
+			
+		hItem = WM_GetDialogItem(pMsg->hWin, ID_TEXT_0);		// texte reg
+		TEXT_SetFont(hItem, GUI_FONT_20B_ASCII);
+		sprintf(text_ultrason,"Ultrason = 0x%X",ultr);
+		TEXT_SetText(hItem, text_ultrason);
+	
+		hItem = WM_GetDialogItem(pMsg->hWin, ID_TEXT_1);		// texte reg
+		TEXT_SetFont(hItem, GUI_FONT_20B_ASCII);
+		sprintf(text_phares,"Phares = 0x%X",phar);
+		TEXT_SetText(hItem, text_phares);
+	
+		hItem = WM_GetDialogItem(pMsg->hWin, ID_TEXT_2);		// texte reg
+		TEXT_SetFont(hItem, GUI_FONT_20B_ASCII);
+		sprintf(text_gps,"GPS = 0x%X",gps);
+		TEXT_SetText(hItem, text_gps);
+		break;
+		
+*/
 
 #include "stm32f7xx_hal.h"
 #include "stm32746g_discovery_sdram.h"

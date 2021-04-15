@@ -121,26 +121,26 @@ void CANthreadT(void const *argument)
 
 	while (1)
 	{
-		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x0f6);
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x020);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
 		data_buf [0] = 0x20; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
-		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x128);
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x030);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
 		data_buf [0] = 0x30; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
-//		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x040);
-//		tx_msg_info.rtr = 0; // 0 = trame DATA
-//		data_buf [0] = 0x40; // data à envoyer à placer dans un tableau de char
-//		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
-//		
-//		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x040);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = 0x40; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		osDelay(50);
 	}		

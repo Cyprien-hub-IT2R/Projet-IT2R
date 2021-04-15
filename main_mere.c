@@ -24,8 +24,6 @@ typedef struct{
 		char  data_gps;
 	}MaStruct;
 
-MaStruct valeur_recue;
-
 extern   ARM_DRIVER_CAN         Driver_CAN1;
 extern   ARM_DRIVER_CAN         Driver_CAN2;
 
@@ -201,22 +199,29 @@ void ultrason(void const *argument)
 {
 		char chaine_ultrason[20];
 		MaStruct *recep;
+		MaStruct valeur_recue;
 		osEvent result;
+		uint8_t data_buf[8];
+		ARM_CAN_MSG_INFO tx_msg_info;
 
 		while(1)
 		{
-			osMutexWait(ID_mut_GLCD, osWaitForever);
-			
 			result = osMailGet(ID_BAL_ultrason, osWaitForever); // attente mail
 			recep = result.value.p; // on cible le pointeur...
 			valeur_recue = *recep ; // ...et la valeur pointée
 			osMailFree(ID_BAL_ultrason, recep); // libération mémoire allouée
 			
 			sprintf(chaine_ultrason,"ULTR 2 = 0x%X",valeur_recue.data_ultrason);
+			osMutexWait(ID_mut_GLCD, osWaitForever);
 			GLCD_DrawString(1,1,(unsigned char*)chaine_ultrason);
-						
 			osMutexRelease(ID_mut_GLCD); // libération SC	
 			
+			tx_msg_info.id = ARM_CAN_STANDARD_ID (0x020);
+			tx_msg_info.rtr = 0; // 0 = trame DATA
+			data_buf [0] = valeur_recue.data_ultrason; // data à envoyer à placer dans un tableau de char
+			Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+
+			osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 			osDelay(50);
 		}
 }
@@ -226,21 +231,28 @@ void phares(void const *argument)
 	char chaine_phares[20];
 	osEvent result;
 	MaStruct *recep;
+	MaStruct valeur_recue;
+	uint8_t data_buf[8];
+	ARM_CAN_MSG_INFO tx_msg_info;
 	
 	while(1)
 	{
-		osMutexWait(ID_mut_GLCD, osWaitForever);
-			
 		result = osMailGet(ID_BAL_phares, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
 		valeur_recue = *recep ; // ...et la valeur pointée
 		osMailFree(ID_BAL_phares, recep); // libération mémoire allouée
 		
 		sprintf(chaine_phares,"PHAR 3 = 0x%X",valeur_recue.data_phares);
-		GLCD_DrawString(1,51,(unsigned char*)chaine_phares);
-						
+		osMutexWait(ID_mut_GLCD, osWaitForever);
+		GLCD_DrawString(1,51,(unsigned char*)chaine_phares);			
 		osMutexRelease(ID_mut_GLCD); // libération SC	
-			
+		
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x030);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = valeur_recue.data_phares; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);
 	}		
 }
@@ -250,21 +262,28 @@ void gps(void const *argument)
 	char chaine_gps[20];
 	osEvent result;
 	MaStruct *recep;
+	MaStruct valeur_recue;
+	uint8_t data_buf[8];
+	ARM_CAN_MSG_INFO tx_msg_info;
 	
 	while(1)
-	{
-		osMutexWait(ID_mut_GLCD, osWaitForever);
-			
+	{	
 		result = osMailGet(ID_BAL_gps, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
 		valeur_recue = *recep ; // ...et la valeur pointée
 		osMailFree(ID_BAL_gps, recep); // libération mémoire allouée
 		
 		sprintf(chaine_gps,"GPS 4 = 0x%X",valeur_recue.data_gps);
+		osMutexWait(ID_mut_GLCD, osWaitForever);
 		GLCD_DrawString(1,101,(unsigned char*)chaine_gps);
-						
 		osMutexRelease(ID_mut_GLCD); // libération SC	
-			
+		
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x040);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = valeur_recue.data_gps; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);
 	}		
 }
@@ -295,7 +314,7 @@ int main (void)
 	ID_BAL_gps = osMailCreate(osMailQ(NOM_BAL_gps), NULL);
 	
 	id_CANthreadR = osThreadCreate (osThread(CANthreadR), NULL);
-	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
+//	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
 	id_ultrason = osThreadCreate (osThread(ultrason), NULL);
 	id_phares = osThreadCreate (osThread(phares), NULL);
 	id_gps = osThreadCreate (osThread(gps), NULL);

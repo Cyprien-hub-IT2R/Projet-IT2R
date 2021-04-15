@@ -18,13 +18,18 @@ extern GLCD_FONT GLCD_Font_16x24;
 
 void tache1 (void const *arg);
 
+void Timer_Init(void);
 
+
+
+float a;
+char etat=0;
 osThreadId ID_tache1;
 
 
 osThreadDef (tache1,osPriorityNormal,1,0);
 
-
+		
 void Init_UART(void){
 	Driver_USART1.Initialize(NULL);
 	Driver_USART1.PowerControl(ARM_POWER_FULL);
@@ -41,35 +46,28 @@ void Init_UART(void){
 void tache1 (void const *arg)  //PWM
 {
 	char GLCD[20],direction[10];
-	char vitesseX, recuY,recuX,X;
+	char vitesseX, recuY,recuX,X2;
 	int PWM_X;
+	char etat = 0;
+	LPC_TIM0->MR0 = 500000;    // Ceci ajuste la p?riode de la PWM ? 20 ms
+	
 	while(1)
 	{
+		
+	
+		
 		Driver_USART1.Receive(&recuY,1);
 		while (Driver_USART1.GetRxCount() < 1);
 		
 		Driver_USART1.Receive(&recuX,1);
 		while (Driver_USART1.GetRxCount() < 1);
+		recuX=234-recuX+32;
+		a=((recuX-31.0)/4000.0)+0.05;
 		
+		sprintf(GLCD, "%d %f",recuX,a);
 		GLCD_DrawString(1,1,GLCD);
-		vitesseX = recuX;
-		
-		if ((int)vitesseX <35)
-		{
-			vitesseX=35;
-		}
-		else if((int)vitesseX > 230)
-		{
-			vitesseX=230;
-		}
-		PWM_X = (int) (vitesseX*(-125))+54375;
-		
-		LPC_PWM1->MR3 = PWM_X;    // ceci ajuste la duree de l'etat haut ; mr3 pour P3.26
-		
-//		sprintf(GLCD,"X: %3d, PWM: %5d",vitesseX,PWM_X);
-//		GLCD_DrawString(1,1,GLCD);
-	
 	}
+	
 }
 
 /*
@@ -85,26 +83,40 @@ int main (void) {
 	GLCD_ClearScreen();
 	GLCD_SetFont(&GLCD_Font_16x24);
 	
-
-  LPC_SC->PCONP = LPC_SC->PCONP | 0x00000040;   // enable PWM1
-	LPC_PWM1->PR = 0;  // prescaler
-		
-
-  LPC_PWM1->MR0 = 499999;    // Ceci ajuste la p?riode de la PWM ? 48 us
+	Timer_Init();
 	
-	LPC_PINCON->PINSEL7 = LPC_PINCON->PINSEL7 | 0x00300000; //  P3.26 est la sortie PWM Channel 3 de Timer 1
+  NVIC_SetPriority(TIMER0_IRQn,0);
+	NVIC_EnableIRQ(TIMER0_IRQn);
 	
-	LPC_PWM1->MCR = LPC_PWM1->MCR | 0x00000002; // Timer relance quand MR0 repasse à 0
-	LPC_PWM1->LER = LPC_PWM1->LER | 0x00000009;  // ceci donne le droit de modifier dynamiquement la valeur du rapport cyclique
-	                                             // bit 0 = MR0    bit3 = MR3
-	LPC_PWM1->PCR = LPC_PWM1->PCR | 0x00000e00;  // autorise la sortie PWM
-	                                
-  LPC_PWM1->TCR = 1;  /*validation de timer 1 et reset counter */
-
-
-ID_tache1 = osThreadCreate(osThread(tache1),NULL);
+  ID_tache1 = osThreadCreate(osThread(tache1),NULL);
 
 
   osKernelStart ();                         // start thread execution 
 	osDelay(osWaitForever);
+}
+
+void Timer_Init(void)
+	{
+	LPC_SC->PCONP |= (1<<1);   // enable MAT0
+	LPC_TIM0->PR = 0;  // prescaler
+	LPC_PINCON->PINSEL7 |= (1<<21); //  P3.26 est la sortie MAT0.1
+	LPC_TIM0->MCR |= 3;     //RAZ du compteur MR si correspondence avec MR0 et MR1, et interruption
+	LPC_TIM0->EMR |= (3<<6) ;    //inverse la sortie MAT0.1, mettre 11 dans les bits 6 et 7 
+  LPC_TIM0->TCR = 1;        /*validation de timer 1 et reset counter */
+} 
+
+void TIMER0_IRQHandler(void)
+{
+	static int mr0;
+	Allumer_1LED(1);
+	LPC_TIM0->IR=1;
+	if (etat==0){
+			mr0=500000*a;
+			etat=1;
+	}
+	else if (etat==1){
+		mr0=500000-(500000*a);
+		etat=0;
+	}
+	LPC_TIM0->MR0 = mr0;
 }

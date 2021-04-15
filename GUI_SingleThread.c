@@ -31,7 +31,8 @@ uint32_t                        tx_obj_idx;
 WM_HWIN hDlg;
 
 extern ARM_DRIVER_CAN Driver_CAN1;
-extern char reg, vit;	// réception regime moteur  et vitesse pour affichage
+//extern char reg, vit;	// réception regime moteur  et vitesse pour affichage
+extern char ultr, phar, gps;
 
 ARM_CAN_MSG_INFO   rx_msg_info;
 uint8_t data_buf[8];
@@ -87,7 +88,6 @@ void myCAN1_callback(uint32_t obj_idx, uint32_t event)
         break;
     }
 }
-
 
 /**
   * System Clock Configuration
@@ -197,8 +197,6 @@ void GUIThread (void const *argument) {
 
 void CAN_SignalUnitEvent (uint32_t event) {}
 
-
-
 //------------------------------------------------------------------------------
 //  CAN Interface Initialization
 //------------------------------------------------------------------------------
@@ -217,8 +215,9 @@ void InitCan1 (void) {
                           ARM_CAN_BIT_SJW(1U));                // Resynchronization jump width is same as phase segment 2
 	
   // Mettre ici les filtres ID de réception sur objet 0
-	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x0f6),0);
-	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x128),0);
+	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x020),0);
+	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x030),0);
+	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x040),0);
 	
 	Driver_CAN1.ObjectConfigure(0,ARM_CAN_OBJ_RX);				// Objet 0 du CAN1 pour réception
 	Driver_CAN1.ObjectConfigure(2,ARM_CAN_OBJ_TX);				// Objet 2 du CAN1 pour émission
@@ -258,22 +257,26 @@ void CANthreadR(void const *argument)
 		// Allumage/Extinction LED
 		switch (identifiant)
 			{
-			case 0x0f6 :	reg=data_reception;
+			case 0x020 :	ultr=data_reception;
 										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
 										break;
 											
-			case 0x128 :	vit=data_reception;
-										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
-										break;	
-			default : 		reg = 0;
-										vit = 0;
+			case 0x030 :	phar=data_reception;
 										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
 										break;
-										
+				
+			case 0x040 :	gps=data_reception;
+										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
+										break;	
+				
+			default : 		ultr = 0;
+										phar = 0;
+										gps = 0;
+										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
+										break;	
 			}
 	}
 }
-
 
 /*********************************************************************
 *

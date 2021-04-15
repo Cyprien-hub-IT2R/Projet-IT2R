@@ -112,8 +112,8 @@ void AllumerLED()
 	{
 		tab[4+nb_led*4]=0xef;
 		tab[5+nb_led*4]=0x00; //Bleu
-		tab[6+nb_led*4]=0x25; //Vert
-		tab[7+nb_led*4]=0xff; //Rouge
+		tab[6+nb_led*4]=0xff; //Vert
+		tab[7+nb_led*4]=0x00; //Rouge //Orange 0025ff
 	}	
 	Driver_SPI1.Send(tab,250);
 }
@@ -185,12 +185,25 @@ void rfidUART(void const*argument){
 				LED_On(1);
 				LED_Off(3);
 				AllumerLED();
-				osDelay(400);
+				osDelay(4000);
 				EteindreLED();
 				osDelay(350);
 				AllumerLED();
-				osDelay(800);
+				osDelay(600);
 				EteindreLED();	
+				osDelay(350);
+				AllumerLED();
+				osDelay(600);
+				EteindreLED();	
+				osDelay(350);
+				AllumerLED();
+				osDelay(600);
+				EteindreLED();	
+				osDelay(350);
+				AllumerLED();
+				osDelay(600);
+				EteindreLED();	
+				
 			}
 			
 			else if(strncmp(chaine_rfid,idValide,8)!=0)

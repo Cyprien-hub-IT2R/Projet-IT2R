@@ -5,7 +5,7 @@
 #include "stdio.h"
 #include "cmsis_os.h"
 
-// STMf34 : 0 pour reception, 2 pour envoie
+// STMf34 : 0 pour reception, 2 pour envoi
 osThreadId id_CANthreadT;
 
 

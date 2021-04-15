@@ -57,21 +57,21 @@ void CANthreadT(void const *argument)
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x002);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x22; // data à envoyer à placer dans un tableau de char
+		data_buf [0] = 0xf2; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x003);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x33; // data à envoyer à placer dans un tableau de char
+		data_buf [0] = 0xf3; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x004);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x44; // data à envoyer à placer dans un tableau de char
+		data_buf [0] = 0xf4; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission

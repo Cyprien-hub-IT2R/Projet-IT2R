@@ -24,6 +24,8 @@ typedef struct{
 		char  data_gps;
 	}MaStruct;
 
+MaStruct valeur_recue;
+
 extern   ARM_DRIVER_CAN         Driver_CAN1;
 extern   ARM_DRIVER_CAN         Driver_CAN2;
 
@@ -114,19 +116,32 @@ void InitCan2 (void)
 // Thread envoi
 void CANthreadT(void const *argument)
 {
-	ARM_CAN_MSG_INFO tx_msg_info;
-	
 	uint8_t data_buf[8];
+	ARM_CAN_MSG_INFO tx_msg_info;
 
 	while (1)
 	{
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x0f6);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = 0x20; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
-		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x001);
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x128);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x55; // data à envoyer à placer dans un tableau de char
+		data_buf [0] = 0x30; // data à envoyer à placer dans un tableau de char
 		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
-
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		
+//		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x040);
+//		tx_msg_info.rtr = 0; // 0 = trame DATA
+//		data_buf [0] = 0x40; // data à envoyer à placer dans un tableau de char
+//		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+//		
+//		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		
 		osDelay(50);
 	}		
 }
@@ -186,7 +201,6 @@ void ultrason(void const *argument)
 {
 		char chaine_ultrason[20];
 		MaStruct *recep;
-		MaStruct valeur_recue;
 		osEvent result;
 
 		while(1)
@@ -212,7 +226,6 @@ void phares(void const *argument)
 	char chaine_phares[20];
 	osEvent result;
 	MaStruct *recep;
-	MaStruct valeur_recue;
 	
 	while(1)
 	{
@@ -237,7 +250,6 @@ void gps(void const *argument)
 	char chaine_gps[20];
 	osEvent result;
 	MaStruct *recep;
-	MaStruct valeur_recue;
 	
 	while(1)
 	{
@@ -288,6 +300,6 @@ int main (void)
 	id_phares = osThreadCreate (osThread(phares), NULL);
 	id_gps = osThreadCreate (osThread(gps), NULL);
 
-  osKernelStart ();                         // start thread execution 
+  osKernelStart (); // start thread execution 
 	osDelay(osWaitForever);
 }

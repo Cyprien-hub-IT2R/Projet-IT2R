@@ -130,10 +130,14 @@ void Init_SPI(void){
 }
 
 
-int ADC_Value;
 
-int lecture_capteur()
-{
+void mySPI_Thread (void const *argument) {
+	char tab[500];
+	int i, nb_led, eclairage, ADC_Value;
+	int seuil = 200; //Seuil de luminosité pour le capteur
+	while(1){
+		
+		//Lecture capteur
 		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
 		
 		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //check if conversion is completed
@@ -141,16 +145,6 @@ int lecture_capteur()
 			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); // read digital value and save it inside uint32_t variable
 		}
 		HAL_ADC_Stop(&myADC2Handle); // stop conversion
-		
-		return ADC_Value;
-}
-
-void mySPI_Thread (void const *argument) {
-	char tab[500];
-	int i, nb_led, eclairage;
-	int seuil = 200; //Seuil de luminosité pour le capteur
-	while(1){
-		ADC_Value = lecture_capteur();
 		
 		//eclairage = 224 - ADC_Value/9;
 	
@@ -199,23 +193,23 @@ void mySPI_Thread (void const *argument) {
 		//else if(ADC_Value > seuil) //JOUR
 		//{
 			//2 x 4 leds phares  blancs avant 
-			for (nb_led = 0; nb_led <8;nb_led++)
-			{
-				tab[4+nb_led*4]=0xe0;
-				tab[5+nb_led*4]=0x00; //Bleu
-				tab[6+nb_led*4]=0x00; //Vert
-				tab[7+nb_led*4]=0x00; //Rouge
-			}	
-		
-		
-			// 2 x 4 leds rouges arrière
-			for (nb_led = 8; nb_led <16;nb_led++)
-			{
-				tab[4+nb_led*4]=0xe0;
-				tab[5+nb_led*4]=0x00; //Bleu
-				tab[6+nb_led*4]=0x00; //Vert
-				tab[7+nb_led*4]=0x0; //Rouge
-			}	
+//			for (nb_led = 0; nb_led <8;nb_led++)
+//			{
+//				tab[4+nb_led*4]=0xe0;
+//				tab[5+nb_led*4]=0x00; //Bleu
+//				tab[6+nb_led*4]=0x00; //Vert
+//				tab[7+nb_led*4]=0x00; //Rouge
+//			}	
+//		
+//		
+//			// 2 x 4 leds rouges arrière
+//			for (nb_led = 8; nb_led <16;nb_led++)
+//			{
+//				tab[4+nb_led*4]=0xe0;
+//				tab[5+nb_led*4]=0x00; //Bleu
+//				tab[6+nb_led*4]=0x00; //Vert
+//				tab[7+nb_led*4]=0x0; //Rouge
+//			}	
 		//}
 		Driver_SPI1.Send(tab,70);
   }

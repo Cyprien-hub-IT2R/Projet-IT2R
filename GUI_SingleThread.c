@@ -4,8 +4,11 @@ Ex Interface CAN
 // puis affichage sur l'interface LCD
 // XM, 03/02/2021
 ------------------------------------------- */
-
-
+// A ajouter dans windowDLG
+//char ultr=0, phar=0, gps=0;
+// USER END
+//#include "DIALOG.h"
+//#include "stdio.h"
 
 #ifdef _RTE_
 #include "RTE_Components.h"             // Component selection

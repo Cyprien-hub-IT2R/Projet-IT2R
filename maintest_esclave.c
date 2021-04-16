@@ -4,6 +4,7 @@
 #include "Driver_CAN.h"                 // ::CMSIS Driver:CAN
 #include "stdio.h"
 #include "cmsis_os.h"
+#include "Board_Buttons.h"              // ::Board Support:Buttons
 
 // STMf34 : 0 pour reception, 2 pour envoi
 osThreadId id_CANthreadT;
@@ -51,9 +52,16 @@ void CANthreadT(void const *argument)
 {
 	uint8_t data_buf[8];
 	ARM_CAN_MSG_INFO tx_msg_info;
+	char data_essence;
 	
-
 	while (1) {
+		
+		if (Buttons_GetState()==1) {
+			data_essence++;
+			if (data_essence>=100){
+				data_essence=100;
+			}
+		}
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x002);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
@@ -75,6 +83,13 @@ void CANthreadT(void const *argument)
 		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x005);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = data_essence; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);
 	}		
 }
@@ -85,6 +100,7 @@ int main (void) {
 	
 	InitCan2();
 	osKernelInitialize ();
+	Buttons_Initialize();
 	
 	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
 

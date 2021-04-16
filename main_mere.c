@@ -14,6 +14,7 @@ osThreadId id_CANthreadT;
 osThreadId id_ultrason;
 osThreadId id_phares;
 osThreadId id_gps;
+osThreadId id_essence;
 
 extern GLCD_FONT GLCD_Font_6x8;
 extern GLCD_FONT GLCD_Font_16x24;
@@ -22,6 +23,7 @@ typedef struct{
 		char  data_ultrason;
 		char  data_phares;
 		char  data_gps;
+		char 	data_essence;
 	}MaStruct;
 
 extern   ARM_DRIVER_CAN         Driver_CAN1;
@@ -38,6 +40,9 @@ osMailQDef (NOM_BAL_phares, 20,MaStruct) ;
 
 osMailQId ID_BAL_gps ;
 osMailQDef (NOM_BAL_gps, 20,MaStruct) ;	
+	
+osMailQId ID_BAL_essence ;
+osMailQDef (NOM_BAL_essence, 20,MaStruct) ;	
 
 // CAN1 utilisé pour réception
 void myCAN1_callback(uint32_t obj_idx, uint32_t event)
@@ -84,7 +89,8 @@ void InitCan1 (void)
 	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x002),0) ; // Objet 0 : réception et ID=0x002 ultra son
 	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x003),0) ; // Objet 0 : réception et ID=0x003 phares
 	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x004),0) ; // Objet 0 : réception et ID=0x004 gps
-
+	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x005),0) ; // Objet 0 : réception et ID=0x005 essence
+	
 	Driver_CAN1.SetMode(ARM_CAN_MODE_NORMAL);					// fin init
 }
 
@@ -191,6 +197,15 @@ void CANthreadR(void const *argument)
 				osMailPut(ID_BAL_gps, ptr); // reveille tache à effectuer
 
 				break;
+			
+			case 0x005:
+			
+				// Reception data essence
+				ptr = osMailAlloc(ID_BAL_essence, osWaitForever);
+				ptr -> data_essence = data_buf[0]; // valeur à envoyer
+				osMailPut(ID_BAL_essence, ptr); // reveille tache à effectuer
+
+				break;
 		}
 	}
 }
@@ -288,11 +303,43 @@ void gps(void const *argument)
 	}		
 }
 
+void essence(void const *argument)
+{
+	char chaine_essence[20];
+	osEvent result;
+	MaStruct *recep;
+	MaStruct valeur_recue;
+	uint8_t data_buf[8];
+	ARM_CAN_MSG_INFO tx_msg_info;
+	
+	while(1)
+	{	
+		result = osMailGet(ID_BAL_essence, osWaitForever); // attente mail
+		recep = result.value.p; // on cible le pointeur...
+		valeur_recue = *recep ; // ...et la valeur pointée
+		osMailFree(ID_BAL_essence, recep); // libération mémoire allouée
+		
+		sprintf(chaine_essence,"ESSE 5 = %d%%",valeur_recue.data_essence);
+		osMutexWait(ID_mut_GLCD, osWaitForever);
+		GLCD_DrawString(1,151,(unsigned char*)chaine_essence);
+		osMutexRelease(ID_mut_GLCD); // libération SC	
+		
+		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x050);
+		tx_msg_info.rtr = 0; // 0 = trame DATA
+		data_buf [0] = valeur_recue.data_essence; // data à envoyer à placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		
+		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
+		osDelay(50);
+	}		
+}
+
 osThreadDef(CANthreadR,osPriorityNormal, 1,0);
 osThreadDef(CANthreadT,osPriorityNormal, 1,0);
 osThreadDef(ultrason,osPriorityNormal,1,0);
 osThreadDef(phares,osPriorityNormal,1,0);
 osThreadDef(gps,osPriorityNormal,1,0);
+osThreadDef(essence,osPriorityNormal,1,0);
 
 int main (void)
 {
@@ -312,12 +359,14 @@ int main (void)
 	ID_BAL_ultrason = osMailCreate(osMailQ(NOM_BAL_ultrason), NULL);
 	ID_BAL_phares = osMailCreate(osMailQ(NOM_BAL_phares), NULL);
 	ID_BAL_gps = osMailCreate(osMailQ(NOM_BAL_gps), NULL);
+	ID_BAL_essence = osMailCreate(osMailQ(NOM_BAL_essence), NULL);
 	
 	id_CANthreadR = osThreadCreate (osThread(CANthreadR), NULL);
 //	id_CANthreadT = osThreadCreate (osThread(CANthreadT), NULL);
 	id_ultrason = osThreadCreate (osThread(ultrason), NULL);
 	id_phares = osThreadCreate (osThread(phares), NULL);
 	id_gps = osThreadCreate (osThread(gps), NULL);
+	id_essence = osThreadCreate (osThread(essence), NULL);
 
   osKernelStart (); // start thread execution 
 	osDelay(osWaitForever);

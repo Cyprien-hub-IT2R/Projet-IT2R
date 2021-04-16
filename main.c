@@ -6,6 +6,7 @@
 #include "Driver_SPI.h"
 #include "cmsis_os.h"                   // CMSIS RTOS header file
 #include "Driver_USART.h"
+#include "Driver_CAN.h"                 // ::CMSIS Driver:CAN
 #include <string.h>
 #include <stdio.h>
 
@@ -16,7 +17,7 @@
 #include "cmsis_os2.h"                  // ::CMSIS:RTOS2
 #endif
 
-ADC_HandleTypeDef myADC2Handle;
+
 
 
 #ifdef RTE_CMSIS_RTOS2_RTX5
@@ -65,15 +66,13 @@ static void Error_Handler(void);
   * @retval None
   */
 	
-extern ARM_DRIVER_USART Driver_USART1;
 extern ARM_DRIVER_SPI Driver_SPI1;
 
-void mySPI_Thread (void const *argument);                             // thread function
-osThreadId tid_mySPI_Thread;                                          // thread id
-osThreadDef (mySPI_Thread, osPriorityNormal, 1, 0);                   // thread object
+ADC_HandleTypeDef myADC2Handle;		//Déclaration du ADC
 
-	
-ADC_HandleTypeDef myADC2Handle;
+osThreadId capteurLumiereID;      //ID du thread du capteur
+
+
 
 //Fonction d'initalisation de l'ADC2, sur PA0, pour la lecture du Ambiente Luminescence Sensor (ALS)
 void init_PIN_PA0_ALS()
@@ -105,65 +104,61 @@ __HAL_RCC_ADC2_CLK_ENABLE(); // activation Horloge ADC2
 	HAL_ADC_ConfigChannel(&myADC2Handle, &Channel_AN0); // Initialisation Chanel_0 avec les paramètre ci-dessus. 
 }
 
-void Init_UART(void){
-	Driver_USART1.Initialize(NULL);
-	Driver_USART1.PowerControl(ARM_POWER_FULL);
-	Driver_USART1.Control(	ARM_USART_MODE_ASYNCHRONOUS |
-							ARM_USART_DATA_BITS_8		|
-							ARM_USART_STOP_BITS_1		|
-							ARM_USART_PARITY_NONE		|
-							ARM_USART_FLOW_CONTROL_NONE,
-							9600);
-	Driver_USART1.Control(ARM_USART_CONTROL_TX,1);
-	Driver_USART1.Control(ARM_USART_CONTROL_RX,1);
-}
 
+//Inititalisation du SPI
 void Init_SPI(void){
 	Driver_SPI1.Initialize(NULL);
 	Driver_SPI1.PowerControl(ARM_POWER_FULL);
 	Driver_SPI1.Control(ARM_SPI_MODE_MASTER | 
-											ARM_SPI_CPOL1_CPHA1 | 
-//											ARM_SPI_MSB_LSB | 
+											ARM_SPI_CPOL1_CPHA1 | 			
 											ARM_SPI_SS_MASTER_UNUSED |
 											ARM_SPI_DATA_BITS(8), 1000000);
 	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
 }
 
+int ADC_Value;
 
-
-void mySPI_Thread (void const *argument) {
-	char tab[500];
-	int i, nb_led, eclairage, ADC_Value;
-	int seuil = 200; //Seuil de luminosité pour le capteur
-	while(1){
-		
-		//Lecture capteur
+int lectureCapteur()
+{
+	//Lecture capteur
 		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
 		
-		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //check if conversion is completed
+		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //Conversion OK?
 		{
-			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); // read digital value and save it inside uint32_t variable
+			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); //Lecture de la valeur
 		}
-		HAL_ADC_Stop(&myADC2Handle); // stop conversion
+		HAL_ADC_Stop(&myADC2Handle); //Arrêt de la conversion
 		
-		//eclairage = 224 - ADC_Value/9;
+		return ADC_Value;
+}
+
+//Tache lecture capteur + led
+void capteurLumiere (void const *argument) {
+	char tab[500];
+	int i, nb_led;
+	int seuil = 180; //Seuil de luminosité pour le capteur
+	while(1){
+		
+		lectureCapteur();
+		
 	
+		//4 bits de start à 0
 		for (i=0;i<4;i++)
 		{
 			tab[i] = 0;
 		}
 	
-		// end
-		tab[68] = 0; 
-		tab[69] = 0; // (7+nb_led*4) -2
+		//Fin de trame
+		tab[52] = 0; 
+		tab[53] = 0; // (7+nb_led*4) -2
 
 		
-		// Voir si on peut tout allumer seulement quand on a approché le RFID
-		
-		//if(ADC_Value < seuil) //NUIT
-		//{
-			//2 x 4 leds phares  blancs avant 
-			for (nb_led = 0; nb_led <8;nb_led++)
+		//NUIT
+		if(ADC_Value < seuil) 
+		{
+			LED_Off(1);
+			//2 x 2 leds phares blancs avant 
+			for (nb_led = 0; nb_led <4;nb_led++)
 			{
 				tab[4+nb_led*4]=0xe8;
 				tab[5+nb_led*4]=0xff; //Bleu
@@ -171,50 +166,35 @@ void mySPI_Thread (void const *argument) {
 				tab[7+nb_led*4]=0xff; //Rouge
 			}	
 		
-			// 2 x 4 leds rouges arrière
-			for (nb_led = 8; nb_led <16;nb_led++)
+			// 2 x 4 leds phares rouges arrière
+			for (nb_led = 4; nb_led <12;nb_led++)
 			{
 				tab[4+nb_led*4]=0xe8;
 				tab[5+nb_led*4]=0x00; //Bleu
 				tab[6+nb_led*4]=0x00; //Vert
 				tab[7+nb_led*4]=0xff; //Rouge
 			}	
+		}
 			
-			// 2 x 4 leds rouges arrière
-			for (nb_led = 8; nb_led <16;nb_led++)
+		
+		//JOUR
+		else if(ADC_Value > seuil)
+		{
+			LED_On(1);
+			//On éteint toutes les leds
+			for (nb_led = 0; nb_led <12;nb_led++)
 			{
-				tab[4+nb_led*4]=0xe8;
+				tab[4+nb_led*4]=0xe0;
 				tab[5+nb_led*4]=0x00; //Bleu
 				tab[6+nb_led*4]=0x00; //Vert
-				tab[7+nb_led*4]=0xff; //Rouge
+				tab[7+nb_led*4]=0x00; //Rouge
 			}	
-		//}
-			
-		//else if(ADC_Value > seuil) //JOUR
-		//{
-			//2 x 4 leds phares  blancs avant 
-//			for (nb_led = 0; nb_led <8;nb_led++)
-//			{
-//				tab[4+nb_led*4]=0xe0;
-//				tab[5+nb_led*4]=0x00; //Bleu
-//				tab[6+nb_led*4]=0x00; //Vert
-//				tab[7+nb_led*4]=0x00; //Rouge
-//			}	
-//		
-//		
-//			// 2 x 4 leds rouges arrière
-//			for (nb_led = 8; nb_led <16;nb_led++)
-//			{
-//				tab[4+nb_led*4]=0xe0;
-//				tab[5+nb_led*4]=0x00; //Bleu
-//				tab[6+nb_led*4]=0x00; //Vert
-//				tab[7+nb_led*4]=0x0; //Rouge
-//			}	
-		//}
-		Driver_SPI1.Send(tab,70);
+		}
+		Driver_SPI1.Send(tab,54); //Envoi de la trame
   }
 }
 
+osThreadDef (capteurLumiere, osPriorityNormal, 1, 0);                   // thread object
 
 int main(void)
 {
@@ -225,37 +205,15 @@ int main(void)
   SystemClock_Config();
   SystemCoreClockUpdate();
 	
-	
+	//Initialisations
 	LED_Initialize();
 	Init_SPI();
-	Init_UART();
 	init_PIN_PA0_ALS();
 	
-	tid_mySPI_Thread = osThreadCreate (osThread(mySPI_Thread), NULL);
+	//Tache capteur + leds
+	capteurLumiereID = osThreadCreate (osThread(capteurLumiere), NULL);
 	
-	
-	/*
-	//Start frame
-	tab[0] = 0x00;
-	tab[1] = 0x00;
-	tab[2] = 0x00;
-	tab[3] = 0x00;
-	
-	tab[4] = 0xFA;
-	tab[5] = 0x00;
-	tab[6] = 0x00;
-	tab[7] = 0xFF;
-	
-	tab[8] = 0xFF;
-	tab[9] = 0xFF;
-	tab[10] = 0xFF;
-	tab[11] = 0xFF;
-	
-	Driver_SPI1.Send(tab,12);
-*/
-
-  
-
+	//Démarrage de l'horloge
   osKernelStart();
 	osDelay(osWaitForever);
 }

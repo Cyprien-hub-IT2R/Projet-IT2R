@@ -104,18 +104,18 @@ void AllumerLED()
 	}
 	
 	// end
-	tab[248] = 0; 
-	tab[249] = 0; // (7+nb_led*4) -2
+	tab[53] = 0; 
+	tab[54] = 0; // (7+nb_led*4) -2
 	
 	//2x4 phares 
-	for (nb_led = 0; nb_led <61;nb_led++)
+	for (nb_led = 0; nb_led <12;nb_led++)
 	{
 		tab[4+nb_led*4]=0xef;
 		tab[5+nb_led*4]=0x00; //Bleu
-		tab[6+nb_led*4]=0xff; //Vert
-		tab[7+nb_led*4]=0x00; //Rouge //Orange 0025ff
+		tab[6+nb_led*4]=0x25; //Vert
+		tab[7+nb_led*4]=0xff; //Rouge //Orange 0025ff
 	}	
-	Driver_SPI1.Send(tab,250);
+	Driver_SPI1.Send(tab,54);
 }
 
 void AllumerLEDNON()
@@ -128,18 +128,18 @@ void AllumerLEDNON()
 	}
 	
 	// end
-	tab2[248] = 0; 
-	tab2[249] = 0; // (7+nb_led*4) -2
+	tab2[53] = 0; 
+	tab2[54] = 0; // (7+nb_led*4) -2
 	
 	//2x4 phares 
-	for (nb_led = 0; nb_led <61;nb_led++)
+	for (nb_led = 0; nb_led <12;nb_led++)
 	{
 		tab2[4+nb_led*4]=0xef;
 		tab2[5+nb_led*4]=0x00; //Bleu
 		tab2[6+nb_led*4]=0x00; //Vert
 		tab2[7+nb_led*4]=0xff; //Rouge
 	}	
-	Driver_SPI1.Send(tab2,250);
+	Driver_SPI1.Send(tab2,54);
 }
 
 void EteindreLED()
@@ -152,10 +152,10 @@ void EteindreLED()
 	}
 	
 	// end
-	tab1[248] = 0; 
-	tab1[249] = 0; // (7+nb_led*4) -2
+	tab1[52] = 0; 
+	tab1[53] = 0; // (7+nb_led*4) -2
 	
-	for (nb_led = 0; nb_led <61;nb_led++)
+	for (nb_led = 0; nb_led <12;nb_led++)
 	{
 		tab1[4+nb_led*4]=0xe0;
 		tab1[5+nb_led*4]=0x00; //Bleu
@@ -163,7 +163,7 @@ void EteindreLED()
 		tab1[7+nb_led*4]=0x00; //Rouge
 	}	
 
-	Driver_SPI1.Send(tab1,250);
+	Driver_SPI1.Send(tab1,54);
 }
 
 
@@ -185,25 +185,12 @@ void rfidUART(void const*argument){
 				LED_On(1);
 				LED_Off(3);
 				AllumerLED();
-				osDelay(4000);
+				osDelay(300);
 				EteindreLED();
 				osDelay(350);
 				AllumerLED();
-				osDelay(600);
-				EteindreLED();	
-				osDelay(350);
-				AllumerLED();
-				osDelay(600);
-				EteindreLED();	
-				osDelay(350);
-				AllumerLED();
-				osDelay(600);
-				EteindreLED();	
-				osDelay(350);
-				AllumerLED();
-				osDelay(600);
-				EteindreLED();	
-				
+				osDelay(600); 
+				EteindreLED();				
 			}
 			
 			else if(strncmp(chaine_rfid,idValide,8)!=0)

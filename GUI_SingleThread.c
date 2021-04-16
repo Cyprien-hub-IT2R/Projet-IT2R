@@ -7,7 +7,7 @@ Ex Interface CAN
 // A ajouter dans windowDLG
 /*
 
-char ultr=0, phar=0, gps=0;
+char ultr=0, phar=0, gps=0, esse=0;
 #include "stdio.h"
 
 char text_ultrason[20];
@@ -59,7 +59,7 @@ WM_HWIN hDlg;
 
 extern ARM_DRIVER_CAN Driver_CAN1;
 //extern char reg, vit;	// réception regime moteur  et vitesse pour affichage
-extern char ultr, phar, gps;
+extern char ultr, phar, gps, esse;
 
 ARM_CAN_MSG_INFO   rx_msg_info;
 uint8_t data_buf[8];
@@ -245,6 +245,7 @@ void InitCan1 (void) {
 	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x020),0);
 	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x030),0);
 	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x040),0);
+	Driver_CAN1.ObjectSetFilter(0,ARM_CAN_FILTER_ID_EXACT_ADD, ARM_CAN_STANDARD_ID(0x050),0);
 	
 	Driver_CAN1.ObjectConfigure(0,ARM_CAN_OBJ_RX);				// Objet 0 du CAN1 pour réception
 	Driver_CAN1.ObjectConfigure(2,ARM_CAN_OBJ_TX);				// Objet 2 du CAN1 pour émission
@@ -294,11 +295,16 @@ void CANthreadR(void const *argument)
 				
 			case 0x040 :	gps=data_reception;
 										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
+										break;
+			
+			case 0x050 :	esse=data_reception;
+										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
 										break;	
 				
 			default : 		ultr = 0;
 										phar = 0;
 										gps = 0;
+										esse = 0;
 										WM_SendMessageNoPara(hDlg, WM_USER);  // pour maj affichage
 										break;	
 			}

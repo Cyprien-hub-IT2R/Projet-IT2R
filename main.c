@@ -68,40 +68,40 @@ static void Error_Handler(void);
 	
 extern ARM_DRIVER_SPI Driver_SPI1;
 
-ADC_HandleTypeDef myADC2Handle;		//Déclaration du ADC
+ADC_HandleTypeDef myADC2Handle;		//DÃ©claration du ADC
 
 osThreadId capteurLumiereID;      //ID du thread du capteur
 
 
 
-//Fonction d'initalisation de l'ADC2, sur PA0, pour la lecture du Ambiente Luminescence Sensor (ALS)
+//Fonction d'initalisation de l'ADC2, sur PA0, pour la lecture du capteur
 void init_PIN_PA0_ALS()
 {
-	GPIO_InitTypeDef ADCpin; //Création de structure de config PIN_ANALOG
-	ADC_ChannelConfTypeDef Channel_AN0; // Création de structure de config ADC
+	GPIO_InitTypeDef ADCpin; //CrÃ©ation de structure de config PIN_ANALOG
+	ADC_ChannelConfTypeDef Channel_AN0; // CrÃ©ation de structure de config ADC
 	
 	//Intialisation PA0
-__HAL_RCC_GPIOA_CLK_ENABLE(); // activation Horloge GPIOA
+	__HAL_RCC_GPIOA_CLK_ENABLE(); // activation Horloge GPIOA
 	ADCpin.Pin = GPIO_PIN_0; // Selection pin PA0
 	ADCpin.Mode = GPIO_MODE_ANALOG; // Selection mode analogique
-	ADCpin.Pull = GPIO_NOPULL; // Désactivation des résistance de pull-up et pull-down
+	ADCpin.Pull = GPIO_NOPULL; // DÃ©sactivation des rÃ©sistance de pull-up et pull-down
 	
-	//Paramétrage ADC2 
-__HAL_RCC_ADC2_CLK_ENABLE(); // activation Horloge ADC2
+	//ParamÃ©trage ADC2 
+	__HAL_RCC_ADC2_CLK_ENABLE(); // activation Horloge ADC2
 	myADC2Handle.Instance = ADC2; // Selection de ADC2
-	myADC2Handle.Init.Resolution = ADC_RESOLUTION_8B; // Selection résolution 8 bits 
+	myADC2Handle.Init.Resolution = ADC_RESOLUTION_8B; // Selection rÃ©solution 8 bits 
 	myADC2Handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV; //Selection du mode single pour l'EOC(end of conversion)
-	myADC2Handle.Init.DataAlign = ADC_DATAALIGN_RIGHT; // Alignement des data à gauche des octets
+	myADC2Handle.Init.DataAlign = ADC_DATAALIGN_RIGHT; // Alignement des data Ã  gauche des octets
 	myADC2Handle.Init.ClockPrescaler =ADC_CLOCK_SYNC_PCLK_DIV8; //Syncronisation des horloges
 	
-	//Paramètrage CHANEL0
+	//ParamÃ¨trage CHANEL0
 	Channel_AN0.Channel = ADC_CHANNEL_0; // Selection analog channel 0
 	Channel_AN0.Rank = 1; // Selection du Rang : 1
-	Channel_AN0.SamplingTime = ADC_SAMPLETIME_15CYCLES; // Selection du temps d'échentillonage à 15
+	Channel_AN0.SamplingTime = ADC_SAMPLETIME_15CYCLES; // Selection du temps d'Ã©chentillonage Ã  15
 	
-	HAL_GPIO_Init(GPIOA, &ADCpin); // Initialisation PA0 avec les paramètre ci-dessus
-	HAL_ADC_Init(&myADC2Handle); // Initialisation ADC2 avec les paramètre ci-dessus
-	HAL_ADC_ConfigChannel(&myADC2Handle, &Channel_AN0); // Initialisation Chanel_0 avec les paramètre ci-dessus. 
+	HAL_GPIO_Init(GPIOA, &ADCpin); // Initialisation PA0 avec les paramÃ¨tre ci-dessus
+	HAL_ADC_Init(&myADC2Handle); // Initialisation ADC2 avec les paramÃ¨tre ci-dessus
+	HAL_ADC_ConfigChannel(&myADC2Handle, &Channel_AN0); // Initialisation Chanel_0 avec les paramÃ¨tre ci-dessus. 
 }
 
 
@@ -110,39 +110,37 @@ void Init_SPI(void){
 	Driver_SPI1.Initialize(NULL);
 	Driver_SPI1.PowerControl(ARM_POWER_FULL);
 	Driver_SPI1.Control(ARM_SPI_MODE_MASTER | 
-											ARM_SPI_CPOL1_CPHA1 | 			
-											ARM_SPI_SS_MASTER_UNUSED |
-											ARM_SPI_DATA_BITS(8), 1000000);
+	ARM_SPI_CPOL1_CPHA1 | 			
+	ARM_SPI_SS_MASTER_UNUSED |
+	ARM_SPI_DATA_BITS(8), 1000000);
 	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
 }
 
+//Valeur de retour du capteur de luminositÃ© en variable globale
 int ADC_Value;
 
 int lectureCapteur()
 {
-	//Lecture capteur
-		HAL_ADC_Start(&myADC2Handle); // start A/D conversion
+	HAL_ADC_Start(&myADC2Handle); //On dÃ©marre la conversion
 		
-		if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //Conversion OK?
-		{
-			ADC_Value=HAL_ADC_GetValue(&myADC2Handle); //Lecture de la valeur
-		}
-		HAL_ADC_Stop(&myADC2Handle); //Arrêt de la conversion
+	if(HAL_ADC_PollForConversion(&myADC2Handle, 5) == HAL_OK) //Conversion OK?
+	{
+		ADC_Value=HAL_ADC_GetValue(&myADC2Handle); //Lecture de la valeur
+	}
+	HAL_ADC_Stop(&myADC2Handle); //ArrÃªt de la conversion
 		
-		return ADC_Value;
+	return ADC_Value;
 }
 
-//Tache lecture capteur + led
+//Tache led + lecture capteur
 void capteurLumiere (void const *argument) {
-	char tab[500];
+	char tab[250]; //250 est l'indice maximal si on utilise toutes les led (60)
 	int i, nb_led;
-	int seuil = 180; //Seuil de luminosité pour le capteur
+	int seuil = 180; //Seuil de luminositÃ© pour le capteur
 	while(1){
+		ADC_Value = lectureCapteur();
 		
-		lectureCapteur();
-		
-	
-		//4 bits de start à 0
+		//4 bits de start Ã  0
 		for (i=0;i<4;i++)
 		{
 			tab[i] = 0;
@@ -150,13 +148,12 @@ void capteurLumiere (void const *argument) {
 	
 		//Fin de trame
 		tab[52] = 0; 
-		tab[53] = 0; // (7+nb_led*4) -2
+		tab[53] = 0; // (7+nb_led*4) -2 -> Pour calculer l'indice de ce tableau
 
 		
 		//NUIT
 		if(ADC_Value < seuil) 
 		{
-			LED_Off(1);
 			//2 x 2 leds phares blancs avant 
 			for (nb_led = 0; nb_led <4;nb_led++)
 			{
@@ -166,7 +163,7 @@ void capteurLumiere (void const *argument) {
 				tab[7+nb_led*4]=0xff; //Rouge
 			}	
 		
-			// 2 x 4 leds phares rouges arrière
+			// 2 x 4 leds phares rouges arriÃ¨re
 			for (nb_led = 4; nb_led <12;nb_led++)
 			{
 				tab[4+nb_led*4]=0xe8;
@@ -180,8 +177,7 @@ void capteurLumiere (void const *argument) {
 		//JOUR
 		else if(ADC_Value > seuil)
 		{
-			LED_On(1);
-			//On éteint toutes les leds
+			//On Ã©teint toutes les leds
 			for (nb_led = 0; nb_led <12;nb_led++)
 			{
 				tab[4+nb_led*4]=0xe0;
@@ -199,11 +195,11 @@ osThreadDef (capteurLumiere, osPriorityNormal, 1, 0);                   // threa
 int main(void)
 {
 	osKernelInitialize ();
-  HAL_Init();
+  	HAL_Init();
 
-  /* Configure the system clock to 168 MHz */
-  SystemClock_Config();
-  SystemCoreClockUpdate();
+ 	 /* Configure the system clock to 168 MHz */
+ 	 SystemClock_Config();
+ 	 SystemCoreClockUpdate();
 	
 	//Initialisations
 	LED_Initialize();
@@ -213,8 +209,8 @@ int main(void)
 	//Tache capteur + leds
 	capteurLumiereID = osThreadCreate (osThread(capteurLumiere), NULL);
 	
-	//Démarrage de l'horloge
-  osKernelStart();
+	//DÃ©marrage de l'horloge
+  	osKernelStart();
 	osDelay(osWaitForever);
 }
 

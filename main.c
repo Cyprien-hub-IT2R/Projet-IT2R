@@ -168,7 +168,7 @@ void EteindreLED()
 
 
 void rfidUART(void const*argument){
-	char rfid[14], chaine_rfid[8], idValide[8] = {'0','0','8','C','2','3','E','9'};	
+	char rfid[14], chaine_rfid[8], idValide[8] = {'0','0','C','6','F','8','5','F'};	
 	int i, badgeOK=1;
 	
 	while (1)
@@ -198,7 +198,7 @@ void rfidUART(void const*argument){
 				LED_On(3);
 				LED_Off(1);
 				badgeOK=0;
-				//Pas le bon badge, bruit méchant
+				//Pas le bon badge, bruit mÃ©chant
 				AllumerLEDNON();
 				osDelay(200);
 				EteindreLED();

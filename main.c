@@ -3,11 +3,9 @@
 #include "osObjects.h"                      // RTOS object definitions
 #include <stdio.h>
 #include "Board_LED.h"                  // ::Board Support:LED
-#include "Driver_USART.h"               // ::CMSIS Driver:USART
 #include "stm32f4xx.h"                  // Device header
 #include "stm32f4xx_hal_conf.h"         // Keil::Device:STM32Cube Framework:Classic
 #include "stm32f4xx_hal.h"              // Keil::Device:STM32Cube HAL:Common
-#include "Driver_USART.h"               // ::CMSIS Driver:USART
 #include "main.h"
 #include <string.h>
 
@@ -59,40 +57,25 @@ uint32_t HAL_GetTick (void) {
 static void SystemClock_Config(void);
 static void Error_Handler(void);
 
-extern ARM_DRIVER_USART Driver_USART1;
 osThreadId ID_rfid;
 
 extern ARM_DRIVER_SPI Driver_SPI1;
 
-
-osThreadId ID_rfid;
-
-
-void Init_UART(void){
-	Driver_USART1.Initialize(NULL);
-	Driver_USART1.PowerControl(ARM_POWER_FULL);
-	Driver_USART1.Control(	ARM_USART_MODE_ASYNCHRONOUS |
-							ARM_USART_DATA_BITS_8		|
-							ARM_USART_STOP_BITS_1		|
-							ARM_USART_PARITY_NONE		|
-							ARM_USART_FLOW_CONTROL_NONE,
-							9600);
-	Driver_USART1.Control(ARM_USART_CONTROL_TX,1);
-	Driver_USART1.Control(ARM_USART_CONTROL_RX,1);
-}
-
+//Fonction d'initialisation SPI
 void Init_SPI(void){
 	Driver_SPI1.Initialize(NULL);
 	Driver_SPI1.PowerControl(ARM_POWER_FULL);
 	Driver_SPI1.Control(ARM_SPI_MODE_MASTER | 
-											ARM_SPI_CPOL1_CPHA1 | 
-//											ARM_SPI_MSB_LSB | 
-											ARM_SPI_SS_MASTER_UNUSED |
-											ARM_SPI_DATA_BITS(8), 1000000);
+	ARM_SPI_CPOL1_CPHA1 | 
+	ARM_SPI_MSB_LSB | 
+	ARM_SPI_SS_MASTER_UNUSED |
+	ARM_SPI_DATA_BITS(8), 1000000);
 	Driver_SPI1.Control(ARM_SPI_CONTROL_SS, ARM_SPI_SS_INACTIVE);
 }
 
+//Création de 3 tableaux pour Allumer_LED(), Eteindre_LED() et Allumer_LEDNON()
 char tab[250], tab1[250], tab2[250];
+
 
 void AllumerLED()
 {
@@ -107,7 +90,7 @@ void AllumerLED()
 	tab[53] = 0; 
 	tab[54] = 0; // (7+nb_led*4) -2
 	
-	//2x4 phares 
+	//Tous les phares oranges
 	for (nb_led = 0; nb_led <12;nb_led++)
 	{
 		tab[4+nb_led*4]=0xef;
@@ -115,7 +98,7 @@ void AllumerLED()
 		tab[6+nb_led*4]=0x25; //Vert
 		tab[7+nb_led*4]=0xff; //Rouge //Orange 0025ff
 	}	
-	Driver_SPI1.Send(tab,54);
+	Driver_SPI1.Send(tab,54); //Envoi de la trame
 }
 
 void AllumerLEDNON()
@@ -131,7 +114,7 @@ void AllumerLEDNON()
 	tab2[53] = 0; 
 	tab2[54] = 0; // (7+nb_led*4) -2
 	
-	//2x4 phares 
+	//Tous les phares rouges
 	for (nb_led = 0; nb_led <12;nb_led++)
 	{
 		tab2[4+nb_led*4]=0xef;
@@ -139,7 +122,7 @@ void AllumerLEDNON()
 		tab2[6+nb_led*4]=0x00; //Vert
 		tab2[7+nb_led*4]=0xff; //Rouge
 	}	
-	Driver_SPI1.Send(tab2,54);
+	Driver_SPI1.Send(tab2,54); //Envoi de la trame
 }
 
 void EteindreLED()
@@ -155,6 +138,7 @@ void EteindreLED()
 	tab1[52] = 0; 
 	tab1[53] = 0; // (7+nb_led*4) -2
 	
+	//Tous les phares éteints
 	for (nb_led = 0; nb_led <12;nb_led++)
 	{
 		tab1[4+nb_led*4]=0xe0;
@@ -163,27 +147,29 @@ void EteindreLED()
 		tab1[7+nb_led*4]=0x00; //Rouge
 	}	
 
-	Driver_SPI1.Send(tab1,54);
+	Driver_SPI1.Send(tab1,54); //Envoi de la trame
 }
 
 
 void rfidUART(void const*argument){
-	char rfid[14], chaine_rfid[8], idValide[8] = {'0','0','C','6','F','8','5','F'};	
-	int i, badgeOK=1;
+	char rfid[14], chaine_rfid[8]
+	char idValide[8] = {'0','0','C','6','F','8','5','F'};	//ID du badge correct
+	int i;
 	
 	while (1)
-  {
-			Driver_USART1.Receive(rfid,14); 
-			while(Driver_USART1.GetRxCount()<1);
-		  osDelay(300);
-			for(i=0;i<8;i++)
+  	{
+		Driver_USART1.Receive(rfid,14); 	//Réception de 14 caractères à mettre dans le tableau RFID[]
+		while(Driver_USART1.GetRxCount()<1);	
+		osDelay(300);
+		
+		//Le numéro du badge est décalé, on doit supprimer les bits de start et autres qui ne nous concernent pas
+		for(i=0;i<8;i++)
+		{
+			chaine_rfid[i]=rfid[i+3];	
+		}		
+			if(strncmp(chaine_rfid,idValide,8)==0) //Les deux ID sont les mêmes
 			{
-					chaine_rfid[i]=rfid[i+3];
-			}		
-			if(strncmp(chaine_rfid,idValide,8)==0) //Les deux ID sont =
-			{
-				LED_On(1);
-				LED_Off(3);
+				//On fait clignoter à intervalles irréguliers
 				AllumerLED();
 				osDelay(300);
 				EteindreLED();
@@ -193,12 +179,9 @@ void rfidUART(void const*argument){
 				EteindreLED();				
 			}
 			
-			else if(strncmp(chaine_rfid,idValide,8)!=0)
+			else if(strncmp(chaine_rfid,idValide,8)!=0) //Les 2 ID sont différents
 			{
-				LED_On(3);
-				LED_Off(1);
-				badgeOK=0;
-				//Pas le bon badge, bruit méchant
+				//On fait clignoter à intervalles réguliers et plus rapides en rouge
 				AllumerLEDNON();
 				osDelay(200);
 				EteindreLED();
@@ -227,25 +210,20 @@ osThreadDef(rfidUART,osPriorityNormal,1,0);
 int main(void)
 {
 	osKernelInitialize ();
-  HAL_Init();
+  	HAL_Init();
 
-  /* Configure the system clock to 168 MHz */
-  SystemClock_Config();
-  SystemCoreClockUpdate();
+  	/* Configure the system clock to 168 MHz */
+  	SystemClock_Config();
+  	SystemCoreClockUpdate();
 
-  /* Add your application code here
-     */
 	LED_Initialize();
 	Init_UART();
 	Init_SPI();
 
+  	ID_rfid = osThreadCreate(osThread(rfidUART),NULL);
 
-  /* Create thread functions that start executing, 
-  Example: osThreadNew(app_main, NULL, NULL); */
-  ID_rfid = osThreadCreate(osThread(rfidUART),NULL);
-
-  /* Start thread execution */
-  osKernelStart();
+  	/* Start thread execution */
+  	osKernelStart();
 	osDelay(osWaitForever);
 }
 

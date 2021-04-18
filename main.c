@@ -55,7 +55,7 @@
 #ifdef RTE_CMSIS_RTOS2                  // when RTE component CMSIS RTOS2 is used
 #include "cmsis_os2.h"                  // ::CMSIS:RTOS2
 #endif
-#define SLAVE_I2C_ADDR       0x73			// Adresse esclave sur 7 bits
+#define SLAVE_I2C_ADDR       0x73			// Adresse esclave sur 7 bits, adresse de l'ultrason sur 7 bits
 #ifdef RTE_CMSIS_RTOS2_RTX5
 /**
   * Override default HAL_GetTick function
@@ -95,12 +95,12 @@ uint32_t HAL_GetTick (void) {
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static void Error_Handler(void);
-void write1byte(unsigned char composant, unsigned char registre, unsigned char valeur);
-unsigned char read1byte( unsigned char composant, unsigned char registre);
+void write1byte(unsigned char composant, unsigned char registre, unsigned char valeur);         // fonction ecriture i2c
+unsigned char read1byte( unsigned char composant, unsigned char registre);                      // fonction lecture i2c
 unsigned char read2byte( unsigned char composant, unsigned char registre);
 void Timer_Init(unsigned int prescaler, unsigned int valeur);
 void TIMER0_IRQHandler(void);
-void ultra(void const* argument);
+void ultra(void const* argument);                             // tache 1 nommée ultra
 void terminal(void const* argument);
 
 //typedef struct{
@@ -108,54 +108,54 @@ void terminal(void const* argument);
 //	int entier;
 //}Lettre;
 
-extern ARM_DRIVER_USART Driver_USART1;
-extern ARM_DRIVER_I2C Driver_I2C1;
+extern ARM_DRIVER_USART Driver_USART1;         // utilisation de l'uart1
+extern ARM_DRIVER_I2C Driver_I2C1;             // utilisation de l'i2c1
 unsigned char data;
 
 uint8_t DeviceAddr;
-osThreadId ID_tacheultra,ID_tacheterminal;
-osThreadDef(ultra,osPriorityNormal,1,0);
+osThreadId ID_tacheultra,ID_tacheterminal;        // identifiant tache
+osThreadDef(ultra,osPriorityNormal,1,0);          // tache ultra initialisation
 osThreadDef(terminal,osPriorityNormal,1,0);
 osMailQId ID_BAL ;
 osMailQDef (BAL, 10, int) ;   //nom du bal, nombre de message, type de message si char, int ou autre 
 
-void Init_I2C(void){
+void Init_I2C(void){                 // fonction initialisation de l'i2c
 	Driver_I2C1.Initialize(NULL);
 	Driver_I2C1.PowerControl(ARM_POWER_FULL);
-	Driver_I2C1.Control(	ARM_I2C_BUS_SPEED,				// 2nd argument = d�bit
+	Driver_I2C1.Control(	ARM_I2C_BUS_SPEED,				// 2nd argument = débit
 							ARM_I2C_BUS_SPEED_STANDARD  );	// 100 kHz
 	//Driver_I2C1.Control(	ARM_I2C_BUS_CLEAR,
 							//0 );
 }
-unsigned char val;
-  char valeurultrason[4];
-	char valeur[16];
+unsigned char val;          //déclaration d'un char val qui va prendre la valeur de l'ultrason 
+  char valeurultrason[4];   //déclaration d'un tableau char valeur ultrason car la valeur de l'ultrason est sur 2 bytes
+	char valeur[16];    // déclaration d'une chaîne de caractère pour afficher sur le terminal (UART)
 void ultra(void const*argument){
 	//Lettre *ptr;
 	//osEvent result;
-	write1byte( SLAVE_I2C_ADDR,0x00 ,0x50 );
+	write1byte( SLAVE_I2C_ADDR,0x00 ,0x50 );    //ecriture i2c, registre 0x00 et ensuite on lui dis de donner la valeur en cm
 	while (1)
   {
 		//ptr = osMailAlloc(ID_BAL, 1000);  //initialisation du pointeur on cherche un case vide
 		//ptr ->valeurultrason[0]=read1byte(SLAVE_I2C_ADDR,0x02);
     //ptr ->valeurultrason[1]=read1byte(SLAVE_I2C_ADDR,0x03);
 		//ptr ->valeurultrason[2]=(ptr ->valeurultrason[0]<<8) | (ptr ->valeurultrason[1]);
-		write1byte( SLAVE_I2C_ADDR,0x01 ,0x06 );
-		write1byte( SLAVE_I2C_ADDR,0x00 ,0x51 );
-		valeurultrason[0]=read1byte(SLAVE_I2C_ADDR,0x02);
-    valeurultrason[1]=read1byte(SLAVE_I2C_ADDR,0x03);
-		val=(valeurultrason[0]<<8) | (valeurultrason[1]);
+		write1byte( SLAVE_I2C_ADDR,0x01 ,0x06 );        // ecriture i2c, on augmente sa sensibilité 
+		write1byte( SLAVE_I2C_ADDR,0x00 ,0x51 );        // ecriture i2c, on dis à l'ultrason de nous donner les valeurs en cm
+		valeurultrason[0]=read1byte(SLAVE_I2C_ADDR,0x02);    // lecture i2c, 1er byte de l'ultrason
+    valeurultrason[1]=read1byte(SLAVE_I2C_ADDR,0x03);               // lecture i2c, 2e byte de l'ultrason
+		val=(valeurultrason[0]<<8) | (valeurultrason[1]);    // décalage de nos 2 bytes pour avoir la valeur sur 1 seule byte 
     
-		sprintf(valeur,"\n\r %d cm",val);
+		sprintf(valeur,"\n\r %d cm",val);              // chaîne de caractère valeur 
 		while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
-		Driver_USART1.Send(valeur,15);
+		Driver_USART1.Send(valeur,15);                 // on envoie la chaîne valeur sur le terminal avec l'uart
 		
 		LED_On (1);																																														//while
-		LED_Off (2);
+		LED_Off (2);      // on allume la led1 et on éteint les leds 2 et 3
 		LED_Off (3);
 		if (val<13){
 			LED_On (2);
-			LED_On(3);
+			LED_On(3);        // si la valeur de l'ultrason est plus petite que 13 on allume toutes les leds
 		}
 		//osDelay(100);
   }
@@ -167,7 +167,7 @@ void terminal(void const*argument){
   {
 //		result=osMailGet (ID_BAL , osWaitForever); //on attend toujours  
 //		if( result.status==osEventMail)
-//			{    //sortie si on recoit un caract�re
+//			{    //sortie si on recoit un caractère
 //		ptr2=result.value.p;         //on recupere la valeur recu dans le pointeur
 //		val= *ptr2; 						//et on pointe la veleur vers un autre pointeur;
 //		sprintf(tab,"\n\r %d cm",val);
@@ -183,7 +183,7 @@ void terminal(void const*argument){
 		osDelay(1000);
    }
 }
-void Init_UART(void){
+void Init_UART(void){.                      // fonction initialisation UART
 	Driver_USART1.Initialize(NULL);
 	Driver_USART1.PowerControl(ARM_POWER_FULL);
 	Driver_USART1.Control(	ARM_USART_MODE_ASYNCHRONOUS |
@@ -222,9 +222,9 @@ int main(void)
 
   /* Add your application code here
      */
-	LED_Initialize();
-  Init_I2C();
-	Init_UART();
+	LED_Initialize();    // initialisation des leds
+  Init_I2C();                // initialisation de l'i2c
+	Init_UART();         // initialisation de l'uart
 	
 	
 //#ifdef RTE_CMSIS_RTOS2	// A commenter si utilisation RTOS
@@ -233,12 +233,12 @@ int main(void)
   //write1byte( SLAVE_I2C_ADDR,0x00 ,0x51 );
   /* Create thread functions that start executing, 
   Example: osThreadNew(app_main, NULL, NULL); */
-  ID_tacheultra = osThreadCreate(osThread(ultra),NULL);
+  ID_tacheultra = osThreadCreate(osThread(ultra),NULL);       // appel tache ultra/ initialisation 
 	//ID_tacheterminal = osThreadCreate(osThread(terminal),NULL);
 	//ID_BAL = osMailCreate(osMailQ(BAL), NULL);
   /* Start thread execution */
   osKernelStart();
-	osDelay(osWaitForever);
+	osDelay(osWaitForever);         // main en sommeil pour toujours 
 //#endif
   
 
@@ -349,7 +349,7 @@ void assert_failed(uint8_t* file, uint32_t line)
 }
 
 #endif
-void write1byte(unsigned char composant, unsigned char registre, unsigned char valeur)
+void write1byte(unsigned char composant, unsigned char registre, unsigned char valeur)           // fonction ecriture i2c
 {
 	uint8_t tab[2];
 	tab[0]=registre; 
@@ -361,7 +361,7 @@ void write1byte(unsigned char composant, unsigned char registre, unsigned char v
 	
 }
 
-unsigned char read1byte( unsigned char composant, unsigned char registre)
+unsigned char read1byte( unsigned char composant, unsigned char registre)       // fonction lecture i2c
 {
 	uint8_t tabR[1];
 	tabR[0]=registre;
@@ -377,13 +377,13 @@ unsigned char read1byte( unsigned char composant, unsigned char registre)
 }	
 //void Timer_Init(unsigned int prescaler, unsigned int valeur)
 //{
-//LPC_SC->PCONP |= (1<<1); //allume le timer 0 (facultatif, d�j� allum� apr�s un reset)
+//LPC_SC->PCONP |= (1<<1); //allume le timer 0 (facultatif, déjà allumé après un reset)
 
 //LPC_TIM0->PR =  prescaler;
 //LPC_TIM0->MR0 = valeur; 
 //LPC_TIM0->MCR = 3;	//reset counter si MR0=COUNTER + interrupt*/
 
-//LPC_TIM0->TCR = 1; //d�marre le comptage
+//LPC_TIM0->TCR = 1; //démarre le comptage
 //}
 //void TIMER0_IRQHandler(void)
 //{  

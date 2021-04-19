@@ -1,6 +1,6 @@
 t <html>
 t <head>
-t  <title>Web Server IUT Cachan - IT2R 2016</title>
+t  <title>Cloud donnée Voiture</title>
 t </head>
 t
 t <body bgcolor="#FFFFFF" leftmargin="0" topmargin="10" marginwidth=
@@ -13,7 +13,7 @@ t        		<tr bgcolor="#EEEEEE">
 t          			<td style="border-bottom: 1px solid #000080" valign=
 t          			"bottom" nowrap height="70" margin="50" width="567">
 t            		<h2 align="center"><font face="verdana" color=
-t            		"#006699">IT2R : TP Webserveur</font></h2>
+t            		"#FE2E2E">IT2R : Véhicule Webserveur</font></h2>
 t          			</td>
 t
 t        			<td style="border-bottom: 1px solid #000080" valign=
@@ -27,7 +27,7 @@ t  					</td>
 t        		</tr>
 t
 t        		<tr>
-t          			<td colspan="5" height="400" width="805" bgcolor="#E6E6FA">
+t          			<td colspan="5" height="400" width="805" bgcolor="#73C2FB">
 t            			<div align="center">
 t              				<center>
 t                			<table width="90%" border="0">
@@ -36,22 +36,24 @@ t                    			<tr>
 t                     				<td width="95%">
 t 										<h2 align="center"><br>
 t           							<b><font face="verdana" color=
-t           							"#003366">Récupération valeur potentiomètre du MCB1768</font></b></h2>
+t           							"#003366">Récupération des données de la voiture</font></b></h2>
 t 										<p align="center"><img border="0" height="140" width="150"
-t                         				src="Logo_GEii2.png"></a></p>
-t 										<p><font size="2">Cette page permet de récupérer la valeur 
-t 										ADC du potentiomètre</font></p>
-t
+t                         				src="IUT-CACHAN.png"></a></p>
+t 										<p><font size="5">DATA UDP transmis par le véhicule</font></p>
 t 										<form action=adc.cgi method=post name=cgi>
 t 										<input type=hidden value="adc" name=pg>
-t 											<table border=0 width=99%><font size="3">
-t 												<tr bgcolor=#aaccff>
-t  													<th width=40%>Commande</th>
-t  													<th width=60%>Valeur</th></tr>
+t 											<table border=0 width=100%><font size="3">
+t 												 <tr bgcolor=#aaccff>
+t  													<th width=40%>Données</th>
+t  													<th width=80%>Valeurs</th><th width=10%>Etats</th></tr>
 # Cette partie contient les informations CGI qu'il va falloir traiter
 t 												<tr>
-t 													<td>  Valeur du potentiomètre : </td>
-c b <td> %04d c'est à dire %5.3f V</td></tr>
+t 													<td>  Distance de l'obstacle : (ultrasons) </td>
+c b <td> face: %d cm     arrière: %d cm     droit: %d cm </td><td> %s</td></tr>
+c r <tr> <td> verification d'obstacle :</td><td> %s </td><td> okk</td></tr>
+c f <tr> <td> présence du badge :</td><td> fonction (activé ou non): %s </td><td> okk</td></tr>
+c j <tr> <td> état des leds :</td><td> Leds: %s et alternance (Jour/Nuit): %s </td><td> okk</td></tr>
+c v <tr> <td> GPS :</td><td> Latitude: %f longitude: %f vitesse: %d km/h</td><td> okk</td></tr>
 t 												</font></table>
 # Définition du bouton Rafraichir
 t 										<p align=center>

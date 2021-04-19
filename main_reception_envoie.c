@@ -29,7 +29,7 @@ typedef struct{
 extern   ARM_DRIVER_CAN         Driver_CAN1;
 extern   ARM_DRIVER_CAN         Driver_CAN2;
 
-osMutexId ID_mut_GLCD; // Mutex pour accès LCD
+osMutexId ID_mut_GLCD; // Mutex pour accÃ¨s LCD
 osMutexDef (mut_GLCD);
 	
 osMailQId ID_BAL_ultrason ;
@@ -44,7 +44,7 @@ osMailQDef (NOM_BAL_gps, 20,MaStruct) ;
 osMailQId ID_BAL_essence ;
 osMailQDef (NOM_BAL_essence, 20,MaStruct) ;	
 
-// CAN1 utilisé pour réception
+// CAN1 utilisÃ© pour rÃ©ception
 void myCAN1_callback(uint32_t obj_idx, uint32_t event)
 {
 	switch (event)
@@ -56,7 +56,7 @@ void myCAN1_callback(uint32_t obj_idx, uint32_t event)
 	}
 }
 
-// CAN2 utilisé pour émission
+// CAN2 utilisÃ© pour Ã©mission
 void myCAN2_callback(uint32_t obj_idx, uint32_t event)
 {
 	switch (event)
@@ -68,7 +68,7 @@ void myCAN2_callback(uint32_t obj_idx, uint32_t event)
 	}
 }
 
-// CAN1 utilisé pour réception
+// CAN1 utilisÃ© pour rÃ©ception
 void InitCan1 (void) 
 {
 	Driver_CAN1.Initialize(NULL,myCAN1_callback);
@@ -82,19 +82,19 @@ void InitCan1 (void)
                           ARM_CAN_BIT_PHASE_SEG2(1U) |         // Set phase segment 2 to 1 time quantum (total bit is 8 time quanta long)
                           ARM_CAN_BIT_SJW(1U));                // Resynchronization jump width is same as phase segment 2
                           
-	// Mettre ici les filtres ID de réception sur objet 0
+	// Mettre ici les filtres ID de rÃ©ception sur objet 0
 		
-	Driver_CAN1.ObjectConfigure(0,ARM_CAN_OBJ_RX);				// Objet 0 du CAN1 pour réception
+	Driver_CAN1.ObjectConfigure(0,ARM_CAN_OBJ_RX);				// Objet 0 du CAN1 pour rÃ©ception
 	
-	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x002),0) ; // Objet 0 : réception et ID=0x002 ultra son
-	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x003),0) ; // Objet 0 : réception et ID=0x003 phares
-	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x004),0) ; // Objet 0 : réception et ID=0x004 gps
-	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x005),0) ; // Objet 0 : réception et ID=0x005 essence
+	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x002),0) ; // Objet 0 : rÃ©ception et ID=0x002 ultra son
+	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x003),0) ; // Objet 0 : rÃ©ception et ID=0x003 phares
+	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x004),0) ; // Objet 0 : rÃ©ception et ID=0x004 gps
+	Driver_CAN1.ObjectSetFilter(0, ARM_CAN_FILTER_ID_EXACT_ADD,ARM_CAN_STANDARD_ID(0x005),0) ; // Objet 0 : rÃ©ception et ID=0x005 essence
 	
 	Driver_CAN1.SetMode(ARM_CAN_MODE_NORMAL);					// fin init
 }
 
-// CAN2 utilisé pour émission
+// CAN2 utilisÃ© pour Ã©mission
 void InitCan2 (void) 
 	{
 	Driver_CAN2.Initialize(NULL,myCAN2_callback);
@@ -108,10 +108,10 @@ void InitCan2 (void)
                           ARM_CAN_BIT_PHASE_SEG2(1U) |         // Set phase segment 2 to 1 time quantum (total bit is 8 time quanta long)
                           ARM_CAN_BIT_SJW(1U));                // Resynchronization jump width is same as phase segment 2
                           
-	// Mettre ici les filtres ID de réception sur objet 0
+	// Mettre ici les filtres ID de rÃ©ception sur objet 0
 	//....................................................
 		
-	Driver_CAN2.ObjectConfigure(1,ARM_CAN_OBJ_TX);				// Objet 1 du CAN2 pour émission
+	Driver_CAN2.ObjectConfigure(1,ARM_CAN_OBJ_TX);				// Objet 1 du CAN2 pour Ã©mission
 	
 	Driver_CAN2.SetMode(ARM_CAN_MODE_NORMAL);					// fin init
 }
@@ -127,22 +127,22 @@ void CANthreadT(void const *argument)
 	{
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x020);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x20; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = 0x20; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x030);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x30; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = 0x30; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x040);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0x40; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = 0x40; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
@@ -161,7 +161,7 @@ void CANthreadR(void const *argument)
 	
 	while(1)
 	{
-		osSignalWait(0x01, osWaitForever);		// sommeil en attente réception
+		osSignalWait(0x01, osWaitForever);		// sommeil en attente rÃ©ception
 		
 		Driver_CAN1.MessageRead(0, &rx_msg_info, data_buf, 32); // 8 data max
 		
@@ -175,17 +175,17 @@ void CANthreadR(void const *argument)
 
 				//stockage information data capteur ultrason
 				ptr = osMailAlloc(ID_BAL_ultrason, osWaitForever);
-				ptr -> data_ultrason = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_ultrason, ptr); // reveille tache à effectuer
+				ptr -> data_ultrason = data_buf[0]; // valeur Ã  envoyer
+				osMailPut(ID_BAL_ultrason, ptr); // reveille tache Ã  effectuer
 
 				break;
 			
 			case 0x003 :
 
-				// Reception  data status capteur luminosité + LEDS (phares)
+				// Reception  data status capteur luminositÃ© + LEDS (phares)
 				ptr = osMailAlloc(ID_BAL_phares, osWaitForever);
-				ptr -> data_phares = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_phares, ptr); // reveille tache à effectuer
+				ptr -> data_phares = data_buf[0]; // valeur Ã  envoyer
+				osMailPut(ID_BAL_phares, ptr); // reveille tache Ã  effectuer
 
 				break;
 			
@@ -193,8 +193,8 @@ void CANthreadR(void const *argument)
 			
 				// Reception data GPS
 				ptr = osMailAlloc(ID_BAL_gps, osWaitForever);
-				ptr -> data_gps = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_gps, ptr); // reveille tache à effectuer
+				ptr -> data_gps = data_buf[0]; // valeur Ã  envoyer
+				osMailPut(ID_BAL_gps, ptr); // reveille tache Ã  effectuer
 
 				break;
 			
@@ -202,8 +202,8 @@ void CANthreadR(void const *argument)
 			
 				// Reception data essence
 				ptr = osMailAlloc(ID_BAL_essence, osWaitForever);
-				ptr -> data_essence = data_buf[0]; // valeur à envoyer
-				osMailPut(ID_BAL_essence, ptr); // reveille tache à effectuer
+				ptr -> data_essence = data_buf[0]; // valeur Ã  envoyer
+				osMailPut(ID_BAL_essence, ptr); // reveille tache Ã  effectuer
 
 				break;
 		}
@@ -223,18 +223,18 @@ void ultrason(void const *argument)
 		{
 			result = osMailGet(ID_BAL_ultrason, osWaitForever); // attente mail
 			recep = result.value.p; // on cible le pointeur...
-			valeur_recue = *recep ; // ...et la valeur pointée
-			osMailFree(ID_BAL_ultrason, recep); // libération mémoire allouée
+			valeur_recue = *recep ; // ...et la valeur pointÃ©e
+			osMailFree(ID_BAL_ultrason, recep); // libÃ©ration mÃ©moire allouÃ©e
 			
 			sprintf(chaine_ultrason,"ULTR 2 = 0x%X",valeur_recue.data_ultrason);
 			osMutexWait(ID_mut_GLCD, osWaitForever);
 			GLCD_DrawString(1,1,(unsigned char*)chaine_ultrason);
-			osMutexRelease(ID_mut_GLCD); // libération SC	
+			osMutexRelease(ID_mut_GLCD); // libÃ©ration SC	
 			
 			tx_msg_info.id = ARM_CAN_STANDARD_ID (0x020);
 			tx_msg_info.rtr = 0; // 0 = trame DATA
-			data_buf [0] = valeur_recue.data_ultrason; // data à envoyer à placer dans un tableau de char
-			Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+			data_buf [0] = valeur_recue.data_ultrason; // data Ã  envoyer Ã  placer dans un tableau de char
+			Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 
 			osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 			osDelay(50);
@@ -254,18 +254,18 @@ void phares(void const *argument)
 	{
 		result = osMailGet(ID_BAL_phares, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
-		valeur_recue = *recep ; // ...et la valeur pointée
-		osMailFree(ID_BAL_phares, recep); // libération mémoire allouée
+		valeur_recue = *recep ; // ...et la valeur pointÃ©e
+		osMailFree(ID_BAL_phares, recep); // libÃ©ration mÃ©moire allouÃ©e
 		
 		sprintf(chaine_phares,"PHAR 3 = 0x%X",valeur_recue.data_phares);
 		osMutexWait(ID_mut_GLCD, osWaitForever);
 		GLCD_DrawString(1,51,(unsigned char*)chaine_phares);			
-		osMutexRelease(ID_mut_GLCD); // libération SC	
+		osMutexRelease(ID_mut_GLCD); // libÃ©ration SC	
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x030);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = valeur_recue.data_phares; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = valeur_recue.data_phares; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);
@@ -285,18 +285,18 @@ void gps(void const *argument)
 	{	
 		result = osMailGet(ID_BAL_gps, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
-		valeur_recue = *recep ; // ...et la valeur pointée
-		osMailFree(ID_BAL_gps, recep); // libération mémoire allouée
+		valeur_recue = *recep ; // ...et la valeur pointÃ©e
+		osMailFree(ID_BAL_gps, recep); // libÃ©ration mÃ©moire allouÃ©e
 		
 		sprintf(chaine_gps,"GPS 4 = 0x%X",valeur_recue.data_gps);
 		osMutexWait(ID_mut_GLCD, osWaitForever);
 		GLCD_DrawString(1,101,(unsigned char*)chaine_gps);
-		osMutexRelease(ID_mut_GLCD); // libération SC	
+		osMutexRelease(ID_mut_GLCD); // libÃ©ration SC	
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x040);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = valeur_recue.data_gps; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = valeur_recue.data_gps; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);
@@ -316,18 +316,18 @@ void essence(void const *argument)
 	{	
 		result = osMailGet(ID_BAL_essence, osWaitForever); // attente mail
 		recep = result.value.p; // on cible le pointeur...
-		valeur_recue = *recep ; // ...et la valeur pointée
-		osMailFree(ID_BAL_essence, recep); // libération mémoire allouée
+		valeur_recue = *recep ; // ...et la valeur pointÃ©e
+		osMailFree(ID_BAL_essence, recep); // libÃ©ration mÃ©moire allouÃ©e
 		
 		sprintf(chaine_essence,"ESSE 5 = %d%%",valeur_recue.data_essence);
 		osMutexWait(ID_mut_GLCD, osWaitForever);
 		GLCD_DrawString(1,151,(unsigned char*)chaine_essence);
-		osMutexRelease(ID_mut_GLCD); // libération SC	
+		osMutexRelease(ID_mut_GLCD); // libÃ©ration SC	
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x050);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = valeur_recue.data_essence; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = valeur_recue.data_essence; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(1, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);
@@ -348,7 +348,7 @@ int main (void)
 	GLCD_ClearScreen();
 	GLCD_SetFont(&GLCD_Font_16x24);
 	
-	// Initialisation des 2 périphériques CAN
+	// Initialisation des 2 pÃ©riphÃ©riques CAN
 	InitCan1(); // reception
 	InitCan2(); // emission
 	

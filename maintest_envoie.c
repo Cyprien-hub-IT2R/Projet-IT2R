@@ -12,7 +12,7 @@ osThreadId id_CANthreadT;
 
 extern   ARM_DRIVER_CAN         Driver_CAN2;
 
-// CAN2 utilisé pour émission
+// CAN2 utilisÃ© pour Ã©mission
 void myCAN2_callback(uint32_t obj_idx, uint32_t event)
 {
     switch (event)
@@ -24,7 +24,7 @@ void myCAN2_callback(uint32_t obj_idx, uint32_t event)
     }
 }
 
-// CAN2 utilisé pour émission
+// CAN2 utilisÃ© pour Ã©mission
 void InitCan2 (void) 
 	{
 	Driver_CAN2.Initialize(NULL,myCAN2_callback);
@@ -38,10 +38,10 @@ void InitCan2 (void)
                           ARM_CAN_BIT_PHASE_SEG2(1U) |         // Set phase segment 2 to 1 time quantum (total bit is 8 time quanta long)
                           ARM_CAN_BIT_SJW(1U));                // Resynchronization jump width is same as phase segment 2
                           
-	// Mettre ici les filtres ID de réception sur objet 0
+	// Mettre ici les filtres ID de rÃ©ception sur objet 0
 	//....................................................
 		
-	Driver_CAN2.ObjectConfigure(2,ARM_CAN_OBJ_TX);				// Objet 1 du CAN2 pour émission
+	Driver_CAN2.ObjectConfigure(2,ARM_CAN_OBJ_TX);				// Objet 1 du CAN2 pour Ã©mission
 	
 	Driver_CAN2.SetMode(ARM_CAN_MODE_NORMAL);					// fin init
 }
@@ -65,29 +65,29 @@ void CANthreadT(void const *argument)
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x002);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0xf2; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = 0xf2; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x003);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0xf3; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = 0xf3; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x004);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = 0xf4; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = 0xf4; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		
 		tx_msg_info.id = ARM_CAN_STANDARD_ID (0x005);
 		tx_msg_info.rtr = 0; // 0 = trame DATA
-		data_buf [0] = data_essence; // data à envoyer à placer dans un tableau de char
-		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data à envoyer	
+		data_buf [0] = data_essence; // data Ã  envoyer Ã  placer dans un tableau de char
+		Driver_CAN2.MessageSend(2, &tx_msg_info, data_buf, 1); // 1 data Ã  envoyer	
 		
 		osSignalWait(0x02, osWaitForever);		// sommeil en attente fin emission
 		osDelay(50);

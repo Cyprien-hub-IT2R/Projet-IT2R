@@ -5,17 +5,13 @@
 #define osObjectsPublic                     // define objects in main module
 #include "osObjects.h"                      // RTOS object definitions
 #include "Driver_USART.h" 
-#define sonderapage 1
-#define sonklaxon1 2
-#define sondemarrage 3
-#define sonclignotant 5
-#define sonklaxon2 7
-#define sonklaxon3 6
-#define sonintermarche 4
-#define soncar 8
+#define sonderapage 4
+#define sonklaxon1 1
+#define sondemarrage 2
+
 
 extern ARM_DRIVER_USART Driver_USART1;
-char num=sonklaxon1;
+char num;
 void DFplayer (void const *argument);                             // thread function
 osThreadId tid_DFplayer;                                          // thread id
 osThreadDef (DFplayer, osPriorityNormal, 1, 0);                   // thread object
@@ -23,6 +19,8 @@ osThreadDef (DFplayer, osPriorityNormal, 1, 0);                   // thread obje
 void DFplayer (void const *argument) {
 	short checksum;
 	char checksumH,checksumL;
+	osEvent audio;
+	int titre;
 		Driver_USART1.Initialize(NULL);
 	Driver_USART1.PowerControl(ARM_POWER_FULL);
 	Driver_USART1.Control(	ARM_USART_MODE_ASYNCHRONOUS |
@@ -34,6 +32,17 @@ void DFplayer (void const *argument) {
 	Driver_USART1.Control(ARM_USART_CONTROL_TX,1);
 	Driver_USART1.Control(ARM_USART_CONTROL_RX,1);
   while (1) {
+	 audio=osSignalWait(0,osWaitForever);
+	 titre=audio.value.signals;
+	 if (titre==1){
+		 num=2;
+	 }
+	 if (titre==2){
+		 num=3;
+	 }
+	 if (titre==4){
+		 num=1;
+	 }
 		
 		uint8_t tab[10]={0x7E,0xFF,0x06,0x09,0x00,0x00,0x01,0x00,0x00,0xEF};
 				
@@ -85,7 +94,7 @@ void DFplayer (void const *argument) {
 	tab[8]=checksumL;
 		
 		while(Driver_USART1.GetStatus().tx_busy == 1); // attente buffer TX vide
-		Driver_USART1.Send(tab,80);	
+		Driver_USART1.Send(tab,80);
 
   }
 }
@@ -96,7 +105,7 @@ int main (void) {
   osKernelInitialize ();                    // initialize CMSIS-RTOS
   tid_DFplayer = osThreadCreate (osThread(DFplayer), NULL);
   // initialize peripherals here
-
+  osSignalset(tid_DFplayer,sonklaxon1);
   // create 'thread' functions that start executing,
   // example: tid_name = osThreadCreate (osThread(name), NULL);
 
